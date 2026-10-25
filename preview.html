@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Tiny Island — уютный остров</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--p:#f7e9c8;--p2:#ecd6a2;--ink:#4a3620;--ed:#a97f45;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#19b8cf;font:600 14px/1.3 "Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--ink);user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:grab}
+.pa{background:linear-gradient(160deg,var(--p),var(--p2));border:2px solid var(--ed);border-radius:14px;box-shadow:0 4px 12px #2e1e0866,inset 0 0 0 2px #fff6dc88}
+button{font:inherit;color:var(--ink);cursor:pointer;touch-action:manipulation}
+.btn{padding:8px 12px;border-radius:12px;border:2px solid var(--ed);background:linear-gradient(#fff3d2,#efd69c);box-shadow:0 3px 0 var(--ed);white-space:nowrap}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ed)}.btn:focus-visible{outline:3px solid #2b6cb0}
+#top{position:fixed;z-index:3;top:max(6px,env(safe-area-inset-top));left:7px;right:7px;display:flex;gap:6px;align-items:flex-start;pointer-events:none}
+#top>*{pointer-events:auto}#res{display:flex;gap:4px;flex-wrap:wrap;flex:1;align-items:flex-start;max-width:calc(100% - 50px)}
+.ch{padding:4px 8px;border-radius:10px;display:flex;gap:5px;align-items:center;font-size:13px;min-height:30px;background:linear-gradient(160deg,#fff1cf,#e8ce91)}
+.ch .ico{font-size:16px;line-height:1}.ch span:last-child{font-variant-numeric:tabular-nums}
+#gear{width:42px;height:42px;padding:0;font-size:22px;flex:none}
+#leftTools{position:fixed;left:7px;top:50%;transform:translateY(-38%);display:flex;flex-direction:column;gap:7px;z-index:3}
+.round{width:43px;height:43px;border-radius:50%;padding:0;font-size:20px;display:grid;place-items:center;background:linear-gradient(#fff4d7,#e7c989);border:2px solid var(--ed);box-shadow:0 3px 0 var(--ed)}
+#bar{position:fixed;right:8px;bottom:max(8px,env(safe-area-inset-bottom));z-index:3;display:flex;flex-direction:column;gap:7px;align-items:stretch;max-width:min(48vw,190px)}
+#bar .btn{font-size:13px;padding:9px 11px;text-align:left;white-space:normal;min-height:40px}
+#miniWrap{position:fixed;left:7px;bottom:max(8px,env(safe-area-inset-bottom));z-index:2;width:150px;padding:6px 7px 5px;text-align:center;pointer-events:auto}
+#miniTitle{font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:13px;margin-bottom:2px}
+#mini{display:block;width:100%;height:86px;touch-action:manipulation;border-radius:8px;cursor:pointer}
+#panel{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(66px + env(safe-area-inset-bottom,0px));width:min(760px,calc(100vw - 16px));padding:10px;display:none;max-height:min(62vh,600px);overflow:auto;overscroll-behavior:contain}
+#panel.on{display:block}#ph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:17px;position:sticky;top:-10px;background:linear-gradient(160deg,var(--p),var(--p2));padding:2px 0 7px;z-index:2}
+#ph .btn{padding:0 12px;font-size:20px}
+#cards{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}
+.card{flex:0 0 128px;padding:6px;border-radius:12px;border:2px solid var(--ed);background:#fff6dc;text-align:center;cursor:pointer;scroll-snap-align:start;min-height:128px}
+.card canvas{width:100%;height:72px;display:block}.card b{display:block;font-size:13px}.card small{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;font-size:11px;margin-top:4px}.card small span{display:flex;gap:3px;align-items:center;white-space:nowrap}.card i{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid #0005}.no small span.no,.no2{color:#b03a2e}
+#pc p{margin:5px 0}#pc .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed #a97f4580}#pc .row span:last-child{text-align:right}
+#pc .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}#pc .muted{opacity:.76;font-size:12px}#pc .sectionTitle{font-weight:800;margin:10px 0 3px;color:#6e4d25}
+#cats{display:flex;gap:5px;overflow-x:auto;padding:2px 0 7px}#cats .btn{font-size:12px;padding:6px 9px}#cats .active{background:linear-gradient(#ffe6a1,#dfad4f);border-color:#8b5b20}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed #a97f4580}.setting input[type=checkbox]{width:22px;height:22px;accent-color:#4a8a42}.setting input[type=range]{width:45%;accent-color:#9e6c2d}.setting .val{min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+#toast{position:fixed;z-index:10;top:max(58px,calc(env(safe-area-inset-top) + 54px));left:50%;transform:translateX(-50%);padding:8px 14px;opacity:0;transition:opacity .22s;pointer-events:none;max-width:90vw;text-align:center;font-weight:800}
+#toast.on{opacity:1}#toast.bad{color:#8f2a1f}
+#bm{position:fixed;z-index:5;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom,0px));display:none;gap:6px;align-items:center;padding:8px 9px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 12px)}#bm.on{display:flex}#bt{font-weight:800;max-width:38vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#bm .btn{padding:8px 10px}
+#level{position:fixed;top:50px;right:8px;z-index:2;padding:4px 8px;font-size:12px;pointer-events:none;opacity:.94}
+@media(max-width:600px){.ch{font-size:11px;padding:3px 5px;min-height:26px}.ch .ico{font-size:13px}#res{max-width:calc(100% - 43px);gap:3px}#gear{width:38px;height:38px}#leftTools{gap:5px;left:5px}.round{width:37px;height:37px;font-size:18px}#miniWrap{width:112px;left:5px;padding:4px 5px}#mini{height:64px}#miniTitle{font-size:11px}#bar{right:6px;bottom:max(6px,env(safe-area-inset-bottom));gap:5px;max-width:135px}#bar .btn{padding:7px 8px;min-height:35px;font-size:12px}#panel{bottom:calc(62px + env(safe-area-inset-bottom,0px));max-height:60vh;padding:8px}#bm{bottom:calc(7px + env(safe-area-inset-bottom,0px));gap:4px}#bm .btn{font-size:12px;padding:7px 8px}#bt{font-size:12px;max-width:25vw}#level{top:59px;right:6px;font-size:10px}}
+@media(max-width:370px){#miniWrap{width:94px}#bar{max-width:122px}#bar .btn{font-size:11px}#res{max-width:calc(100% - 41px)}}
+</style></head><body>
+<canvas id="c" aria-label="Остров: перетаскивайте карту, нажимайте на здания и природу"></canvas>
+<div id="top"><div id="res"></div><button class="btn" id="gear" aria-label="Настройки">⚙️</button></div>
+<div id="level" class="pa">Деревня · Уровень 1</div>
+<div id="leftTools"><button class="round" id="home" title="К центру острова">⌂</button><button class="round" id="harvest" title="Сбор ресурсов с природы">🌿</button><button class="round" id="musicBtn" title="Музыка: вкл/выкл">♫</button><button class="round" id="soundBtn" title="Звуки: вкл/выкл">🔊</button></div>
+<div id="miniWrap" class="pa"><div id="miniTitle">Остров</div><canvas id="mini" width="260" height="160" title="Нажмите, чтобы переместить камеру"></canvas></div>
+<div id="toast" class="pa"></div>
+<div id="bm" class="pa"><span id="bt"></span><button class="btn" id="rot">Повернуть ↻</button><button class="btn" id="confirmPlace">Построить</button><button class="btn" id="cx">Отмена</button></div>
+<div id="panel" class="pa"><div id="ph"><b id="pt"></b><button class="btn" id="pcl" aria-label="Закрыть">×</button></div><div id="pc"></div></div>
+<div id="bar"><button class="btn" data-m="b">🏗️ Строительство</button><button class="btn" data-m="q">📜 Задания</button><button class="btn" data-m="r">🏆 Награды</button><button class="btn" data-m="d">🚜 Бульдозер</button></div>
+<script>
+/* ===== утилиты и изометрия: мир (x,y) → экран (x-y)*32, (x+y)*16; z — высота в пикселях ===== */
+const $=i=>document.getElementById(i),cv=$('c'),g=cv.getContext('2d'),N=26,CS=1.5,PI=Math.PI,KEY='tinyisland.v1';
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v)),iso=(x,y)=>[(x-y)*32,(x+y)*16],P=(x,y,z=0)=>{const a=iso(x,y);return[a[0],a[1]-z]};
+const rnd=s=>()=>{s|=0;s=s+1831565813|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const L=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k];
+function sh(h,k){const n=parseInt(h.slice(1),16),f=k<0?0:255,p=Math.abs(k),m=v=>Math.round((f-v)*p+v);return`rgb(${m(n>>16)},${m(n>>8&255)},${m(n&255)})`}
+function poly(c,p,f,s){c.beginPath();p.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.fillStyle=f;c.fill();if(s){c.strokeStyle=s;c.lineWidth=1;c.stroke()}}
+function ell(c,x,y,rx,ry,f){c.fillStyle=f;c.beginPath();c.ellipse(x,y,rx,ry,0,0,7);c.fill()}
+function circ(c,x,y,r,f,s='#1e4a24'){c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=f;c.fill();c.strokeStyle=s;c.lineWidth=1.2;c.stroke()}
+/* призма: левая грань светлее, правая темнее (свет сверху-слева) */
+function box(c,x,y,w,h,z0,z1,col){const C=P(x+w,y+h,z1);
+ poly(c,[P(x,y+h,z0),P(x+w,y+h,z0),C,P(x,y+h,z1)],sh(col,-.08),'#0003');
+ poly(c,[P(x+w,y+h,z0),P(x+w,y,z0),P(x+w,y,z1),C],sh(col,-.3),'#0003');
+ poly(c,[P(x,y,z1),P(x+w,y,z1),C,P(x,y+h,z1)],sh(col,.15),'#0002')}
+/* вальмовая крыша с рядами черепицы */
+function roof(c,x,y,w,h,z,r,col,e=.12){const ap=P(x+w/2,y+h/2,z+r),D=P(x-e,y+h+e,z),C=P(x+w+e,y+h+e,z),B=P(x+w+e,y-e,z);
+ poly(c,[D,C,ap],sh(col,-.02),'#0004');poly(c,[C,B,ap],sh(col,-.26),'#0004');
+ c.strokeStyle='#0003';c.lineWidth=1;c.beginPath();for(let i=1;i<5;i++){const k=i/5,a=L(D,ap,k),b=L(C,ap,k),d=L(B,ap,k);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(d[0],d[1])}c.stroke()}
+function wq(c,x,y,w,h,s,u0,u1,z0,z1,col){const f=(u,z)=>s?P(x+w,y+h-u*h,z):P(x+u*w,y+h,z);poly(c,[f(u0,z0),f(u1,z0),f(u1,z1),f(u0,z1)],col,'#0005')}
+const shd=(c,x,y,w,h,l=.3)=>poly(c,[P(x,y+.15),P(x+w+l,y+.15),P(x+w+l,y+h+.1),P(x,y+h+.1)],'rgba(45,35,10,.17)');
+
+/* ===== каталог зданий ===== */
+const RN={coins:'монет',wood:'дерева',stone:'камня',food:'еды',water:'воды',energy:'энергии'},RC={coins:'#f2b632',wood:'#9a6a3a',stone:'#9aa0a6',food:'#d9533c',water:'#3b9be0',energy:'#edb832'};
+const B={
+ house:{n:'Дом',g:'Жильё',w:1,h:1,c:{coins:100,wood:10},p:{coins:.5},pop:4,ps:1.25,col:'#d9663a'},
+ cottage:{n:'Коттедж',g:'Жильё',w:2,h:1,rot:1,c:{coins:220,wood:22},p:{coins:.8},pop:7,ps:1.0,col:'#4f9e4e'},
+ apartment:{n:'Многоквартирный дом',g:'Жильё',w:2,h:2,rot:1,c:{coins:550,wood:30,stone:35},p:{coins:1.2},pop:18,ps:.7,col:'#e2a34e'},
+ tower:{n:'Современная высотка',g:'Жильё',w:2,h:2,rot:1,c:{coins:1400,wood:35,stone:120,energy:15},p:{coins:2.5},pop:42,ps:.52,col:'#58b5d2'},
+ road:{n:'Асфальтовая дорога',g:'Дороги и уют',w:1,h:1,c:{coins:12,stone:2},p:{},happy:.1,ps:1.25,col:'#555d65'},
+ path:{n:'Тропинка',g:'Дороги и уют',w:1,h:1,c:{coins:6,wood:1},p:{},happy:.1,ps:1.3,col:'#caa66b'},
+ bridge:{n:'Мостик',g:'Дороги и уют',w:2,h:1,rot:1,bridge:1,c:{coins:65,wood:22},p:{},happy:.4,ps:1.0,col:'#a87842'},
+ lamp:{n:'Уличный фонарь',g:'Дороги и уют',w:1,h:1,c:{coins:35,stone:4,energy:1},p:{},happy:.5,ps:1.2,col:'#e9c56d'},
+ hedge:{n:'Живая изгородь',g:'Дороги и уют',w:1,h:1,c:{coins:18,wood:2},p:{},happy:.35,ps:1.25,col:'#3b8c3c'},
+ arch:{n:'Декоративная арка',g:'Дороги и уют',w:2,h:1,rot:1,c:{coins:90,wood:12,stone:10},p:{},happy:1.2,ps:1.0,col:'#d9c59a'},
+ flowerbed:{n:'Клумба',g:'Дороги и уют',w:1,h:1,c:{coins:22,food:2},p:{},happy:.65,ps:1.25,col:'#d96f9d'},
+ bench:{n:'Скамейка',g:'Дороги и уют',w:1,h:1,c:{coins:28,wood:4},p:{},happy:.3,ps:1.25,col:'#a87842'},
+ fountain:{n:'Фонтан',g:'Дороги и уют',w:2,h:2,c:{coins:180,stone:24,water:8},p:{},happy:2,ps:.8,col:'#64c6db'},
+ park:{n:'Парковый участок',g:'Дороги и уют',w:2,h:2,rot:1,c:{coins:125,wood:12,food:10},p:{},happy:2.5,ps:.8,col:'#40994b'},
+ townhall:{n:'Мэрия',g:'Госструктуры',w:2,h:2,rot:1,c:{coins:520,wood:35,stone:35},p:{coins:1.1},happy:3,workers:2,ps:.72,col:'#d3b77a'},
+ police:{n:'Полицейский участок',g:'Госструктуры',w:2,h:1,rot:1,c:{coins:300,wood:18,stone:18},p:{coins:.2},happy:1.5,workers:2,ps:.9,col:'#4b7dba'},
+ fire:{n:'Пожарная часть',g:'Госструктуры',w:2,h:1,rot:1,c:{coins:310,wood:20,stone:18},p:{coins:.2},happy:1.4,workers:2,ps:.9,col:'#d6533e'},
+ hospital:{n:'Больница',g:'Госструктуры',w:2,h:2,rot:1,c:{coins:650,wood:25,stone:55,water:8},p:{coins:.4},happy:2.2,workers:4,ps:.72,col:'#f1eee0'},
+ school:{n:'Школа',g:'Госструктуры',w:2,h:2,rot:1,c:{coins:420,wood:28,stone:25},p:{coins:.25},happy:1.6,workers:3,ps:.78,col:'#d9b25e'},
+ post:{n:'Почта',g:'Госструктуры',w:1,h:1,c:{coins:160,wood:15,stone:5},p:{coins:.35},happy:.7,workers:1,ps:1.15,col:'#d96f42'},
+ cafe:{n:'Кафе',g:'Бизнес',w:1,h:1,c:{coins:135,wood:12},p:{coins:1.1},happy:.35,workers:1,ps:1.1,col:'#e58a54'},
+ shop:{n:'Магазин',g:'Бизнес',w:1,h:1,c:{coins:155,wood:12,stone:5},p:{coins:1.4},happy:.25,workers:1,ps:1.1,col:'#4599bf'},
+ market:{n:'Рынок',g:'Бизнес',w:2,h:1,rot:1,c:{coins:250,wood:20,stone:10},p:{coins:1.2,food:.1},happy:.5,workers:2,ps:.85,col:'#e8743a'},
+ bakery:{n:'Пекарня',g:'Бизнес',w:2,h:1,rot:1,c:{coins:190,wood:16,stone:8},p:{food:.7,coins:.4},workers:2,ps:.95,col:'#c9552f'},
+ workshop:{n:'Мастерская',g:'Бизнес',w:2,h:2,rot:1,c:{coins:250,wood:24,stone:12},p:{wood:.2,coins:.5},workers:3,ps:.8,col:'#b4824e'},
+ hotel:{n:'Отель у пляжа',g:'Бизнес',w:2,h:2,rot:1,c:{coins:600,wood:28,stone:45},p:{coins:2.1},happy:1,workers:3,ps:.75,col:'#e6a5a4'},
+ farm:{n:'Ферма',g:'Производство',w:3,h:2,rot:1,c:{coins:150,wood:15},p:{food:.8},workers:2,ps:.8,col:'#75a64e'},
+ sawmill:{n:'Лесопилка',g:'Производство',w:2,h:2,c:{coins:200,wood:25},p:{wood:.7},workers:2,ps:.85,col:'#c8582f'},
+ well:{n:'Колодец',g:'Производство',w:1,h:1,c:{coins:60,stone:15},p:{water:.6},ps:1.3,col:'#a5aab3'},
+ dock:{n:'Причал',g:'Остров',w:3,h:1,rot:1,water:1,c:{coins:120,wood:30},p:{food:.4},happy:.6,ps:.75,col:'#b97e44'},
+ lighthouse:{n:'Маяк',g:'Остров',w:2,h:2,c:{coins:300,stone:30},p:{stone:.3},happy:.8,ps:.48,col:'#d63a30'},
+ warehouse:{n:'Склад',g:'Остров',w:2,h:1,rot:1,c:{coins:180,wood:20},p:{},ps:.9,col:'#a77b4e'},
+ windmill:{n:'Ветряк',g:'Энергия',w:2,h:2,c:{coins:250,wood:16,stone:20},p:{energy:1.2},workers:1,ps:.7,col:'#e8dfc8'},
+ solar:{n:'Солнечная панель',g:'Энергия',w:2,h:1,rot:1,c:{coins:210,stone:12,energy:2},p:{energy:.9},ps:1.0,col:'#397eb2'},
+ beehive:{n:'Пасека',g:'Производство',w:1,h:1,c:{coins:95,wood:8,food:4},p:{food:.3,coins:.15},ps:1.1,col:'#e7b832'},
+ garden:{n:'Сад',g:'Производство',w:2,h:2,rot:1,c:{coins:130,wood:10,food:5},p:{food:.6},happy:.8,ps:.8,col:'#58a75a'},
+ church:{n:'Церковь',g:'Госструктуры',w:2,h:2,c:{coins:350,wood:30,stone:30},p:{coins:1},happy:1.4,ps:.68,col:'#3f74c9'}
+};
+const START=[['house',8,9],['house',10,8],['house',12,7],['church',12,11],['market',16,12],['farm',7,14],['sawmill',10,15],['well',14,16],['lighthouse',16,7],['dock',0,15],['bridge',8,6],['tower',18,7],['tower',20,9],['apartment',18,11],['townhall',15,10],['cafe',14,9],['road',7,8],['road',8,8],['road',11,7],['road',13,7],['road',14,8],['road',15,8],['road',15,9],['road',17,10],['road',7,10],['road',8,11],['road',9,11],['road',10,11],['road',11,10],['road',14,10],['road',17,11],['road',14,14],['road',15,14],['road',17,14],['road',13,15],['road',14,15]];
+const fpT=(t,r)=>r&&B[t].rot?[B[t].h,B[t].w]:[B[t].w,B[t].h];
+const prodT=p=>Object.keys(p).map(k=>'+'+(+p[k].toFixed(1))+' '+RN[k]).join(', ');
+
+/* ===== отрисовка зданий (у каждого типа своя геометрия) ===== */
+const DR={
+house(c,x,y,w,h,t,s=0){const wc=['#f3c9a8','#f2dc9e','#ebb89a'][s%3],rc=['#d9663a','#c9552f'][s%2],a=x+.06,b=y+.06;shd(c,x,y,w,h);
+ box(c,a,b,.88,.88,0,26,wc);wq(c,a,b,.88,.88,0,.38,.66,0,15,'#7a4a2a');wq(c,a,b,.88,.88,1,.3,.7,10,19,'#a8dcee');
+ roof(c,a,b,.88,.88,26,17,rc);box(c,x+.2,y+.5,.2,.2,26,46,'#9a9a98')},
+church(c,x,y,w,h,t){shd(c,x,y,w,h,.9);const a=x+.1,b=y+.1;
+ box(c,a,b,1.8,1.3,0,24,'#f2e2b0');wq(c,a,b,1.8,1.3,1,.2,.4,6,18,'#6aa9d6');wq(c,a,b,1.8,1.3,1,.6,.8,6,18,'#6aa9d6');roof(c,a,b,1.8,1.3,24,18,'#3f74c9',.14);
+ box(c,x+.55,y+1.05,.9,.85,0,50,'#f2e2b0');wq(c,x+.55,y+1.05,.9,.85,0,.35,.65,0,16,'#7a4a2a');wq(c,x+.55,y+1.05,.9,.85,1,.3,.7,28,40,'#2a4f8a');
+ const k=P(x+1,y+1.9,38);circ(c,k[0],k[1],6,'#fffbe8','#5a4630');c.beginPath();c.moveTo(k[0],k[1]-4);c.lineTo(k[0],k[1]);c.lineTo(k[0]+3,k[1]+1);c.stroke();
+ roof(c,x+.55,y+1.05,.9,.85,50,34,'#3f74c9',.1);const f=P(x+1,y+1.475,84);c.strokeStyle='#5a4630';c.beginPath();c.moveTo(f[0],f[1]);c.lineTo(f[0],f[1]-16);c.stroke();poly(c,[[f[0],f[1]-16],[f[0]+11+Math.sin(t*4)*2,f[1]-13],[f[0],f[1]-9]],'#d63a30')},
+lighthouse(c,x,y,w,h,t){shd(c,x,y,w,h,1.8);
+ box(c,x+.05,y+.25,1.7,1.5,0,9,'#8d7b6c');box(c,x,y+1,.7,.8,0,6,'#7d6c5e');box(c,x+1.3,y+.1,.6,.7,0,14,'#9a8878');box(c,x+.3,y+.5,1.1,1,9,16,'#a08f7f');
+ const[cx,cy]=P(x+1,y+1,16);
+ for(let i=0;i<6;i++){const a=cy-i*14,b=a-14,r0=15-i*1.4,r1=r0-1.4;poly(c,[[cx-r0,a],[cx+r0,a],[cx+r1,b],[cx-r1,b]],i%2?'#f6f1ea':'#d63a30');poly(c,[[cx+r0*.2,a],[cx+r0,a],[cx+r1,b],[cx+r1*.2,b]],'rgba(60,20,20,.22)')}
+ const ty=cy-84;ell(c,cx,ty,12,5,'#4a4a52');poly(c,[[cx-6,ty],[cx+6,ty],[cx+6,ty-15],[cx-6,ty-15]],'#bfe9f5','#0004');
+ c.fillStyle=`rgba(255,226,110,${.75+.25*Math.sin(t*3)})`;c.fillRect(cx-4,ty-13,8,10);poly(c,[[cx-9,ty-15],[cx+9,ty-15],[cx,ty-30]],'#c8382e','#0004');
+ c.strokeStyle='#4a4a52';c.beginPath();c.moveTo(cx,ty-30);c.lineTo(cx,ty-38);c.moveTo(cx-5,ty-36);c.lineTo(cx+5,ty-36);c.stroke()},
+market(c,x,y,w,h,t){shd(c,x,y,w,h,.4);box(c,x+.1,y+.2,w-.2,h-.3,0,11,'#9a6a3a');
+ const n=Math.max(4,Math.round(w*3)),cs=['#d9382c','#6cbf3c','#f0b429','#e8751a'];
+ for(let i=0;i<n-1;i++)box(c,x+.18+i*(w-.5)/(n-1),y+.3,.22,.22,11,16,cs[i%4]);
+ for(const[a,b]of[[x,y],[x+w-.08,y],[x,y+h+.05],[x+w-.08,y+h+.05]])box(c,a,b,.08,.08,0,30,'#7a4a2a');
+ const D=P(x-.05,y+h+.15,28),C=P(x+w+.05,y+h+.15,28),A=P(x-.05,y-.05,42),Bq=P(x+w+.05,y-.05,42);
+ for(let i=0;i<n;i++){const a=i/n,b=(i+1)/n,col=i%2?'#f7ead2':'#e8743a',d1=L(D,C,a),d2=L(D,C,b);poly(c,[d1,d2,L(A,Bq,b),L(A,Bq,a)],col,'#0002');poly(c,[d1,d2,[d2[0],d2[1]+6],[d1[0],d1[1]+6]],col,'#0002')}
+ for(let i=0;i<3;i++)box(c,x+.12+i*(w-.4)/3,y+h+.2,.28,.28,0,9,cs[(i+1)%4])},
+farm(c,x,y,w,h,t){shd(c,x,y,w,h,.1);
+ const fe=(x1,y1,x2,y2)=>{const n=Math.max(1,Math.round(Math.hypot(x2-x1,y2-y1)*2));c.strokeStyle='#7a4a2a';c.lineCap='round';c.lineWidth=3;c.beginPath();for(let i=0;i<=n;i++){const a=x1+(x2-x1)*i/n,b=y1+(y2-y1)*i/n,p=P(a,b),q=P(a,b,10);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}c.stroke();c.lineWidth=2;c.beginPath();for(const z of[4,8]){const p=P(x1,y1,z),q=P(x2,y2,z);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}c.stroke()};
+ fe(x,y,x+w,y);fe(x,y,x,y+h);poly(c,[P(x,y,1),P(x+w,y,1),P(x+w,y+h,1),P(x,y+h,1)],'#8a5a34');
+ const n=Math.round(w*2),wd=(w-.2)/n;
+ for(let i=0;i<n;i++){const xa=x+.1+i*wd,gold=i%2,col=gold?'#e0b23e':'#5aa23a';
+  poly(c,[P(xa+.07,y+.15,2),P(xa+wd-.07,y+.15,2),P(xa+wd-.07,y+h-.15,2),P(xa+.07,y+h-.15,2)],gold?'#c9962c':'#3f7f2c');
+  c.strokeStyle=col;c.lineWidth=3;c.beginPath();for(let j=0;j<h*4-1;j++){const p=P(xa+wd/2,y+.25+j*.25,2),q=P(xa+wd/2+Math.sin(t*2+j+i)*.02,y+.25+j*.25,9);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}c.stroke()}
+ fe(x,y+h,x+w,y+h);fe(x+w,y,x+w,y+h)},
+sawmill(c,x,y,w,h,t){shd(c,x,y,w,h,.5);poly(c,[P(x,y,1),P(x+w,y,1),P(x+w,y+h,1),P(x,y+h,1)],'#c9a06a');
+ box(c,x+.1,y+.1,1.2,.12,0,26,'#9a6a3a');box(c,x+.25,y+.35,.8,.7,0,12,'#dba965');
+ for(const[a,b]of[[.1,1.25],[1.2,1.25],[1.2,.1],[.1,.1]])box(c,x+a,y+b,.1,.1,0,28,'#7a4a2a');
+ roof(c,x,y,1.4,1.4,28,14,'#c8582f',.08);
+ const bx=P(x+1.55,y+1.1);c.lineCap='round';
+ for(let r=0;r<3;r++)for(let i=0;i<3-r;i++){const cx=bx[0]+(i-(2-r)/2)*8-6,cy=bx[1]-r*7;c.strokeStyle='#9c6a38';c.lineWidth=8;c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+14,cy+7);c.stroke();circ(c,cx,cy,4,'#e0b070','#7a4a2a')}},
+well(c,x,y,w,h,t){shd(c,x,y,w,h,.3);const[cx,cy]=P(x+.5,y+.5);
+ box(c,x+.1,y+.1,.08,.08,0,34,'#7a4a2a');box(c,x+.82,y+.1,.08,.08,0,34,'#7a4a2a');
+ poly(c,[[cx-15,cy-3],[cx+15,cy-3],[cx+15,cy-15],[cx-15,cy-15]],'#9ea0a4');ell(c,cx,cy-3,15,7.5,'#8a8c90');
+ for(let i=0;i<4;i++)c.strokeStyle='#0003',c.beginPath(),c.moveTo(cx-15+i*10,cy-3+(i%2?3:2)),c.lineTo(cx-15+i*10,cy-15),c.stroke();
+ ell(c,cx,cy-15,15,7.5,'#c3c5c8');ell(c,cx,cy-15,11,5.2,'#3b8fc8');
+ box(c,x+.1,y+.82,.08,.08,0,34,'#7a4a2a');box(c,x+.82,y+.82,.08,.08,0,34,'#7a4a2a');roof(c,x+.1,y+.1,.8,.8,34,11,'#a8602f',.16)},
+dock(c,x,y,w,h,t){const z=7,n=Math.round(Math.max(w,h)*3);box(c,x,y,w,h,z-3,z,'#a8703c');
+ for(let i=0;i<n;i++){const a=i/n,b=(i+1)/n,col=i%2?'#c88d50':'#b97e44';poly(c,w>=h?[P(x+w*a,y,z),P(x+w*b,y,z),P(x+w*b,y+h,z),P(x+w*a,y+h,z)]:[P(x,y+h*a,z),P(x+w,y+h*a,z),P(x+w,y+h*b,z),P(x,y+h*b,z)],col,'#5a381a55')}
+ for(const[a,b]of[[x,y],[x+w-.15,y],[x,y+h-.15],[x+w-.15,y+h-.15]])box(c,a,b,.15,.15,-8,z+9,'#6b4423');
+ const bb=Math.sin(t*2+x)*1.6,o=P(x+w*.5,y+h+.9,-2+bb),q=(a)=>a.map(p=>[o[0]+p[0],o[1]+p[1]]);
+ poly(c,q([[-22,-9],[26,15],[16,19],[-14,2]]),'#8a5a2b','#3a2410');poly(c,q([[-19,-8],[22,13],[16,15],[-12,2]]),'#c79a5c');poly(c,q([[-14,2],[16,19],[14,22],[-14,5]]),'#3b6fc4');
+ c.strokeStyle='#6b4423';c.lineWidth=2;c.beginPath();c.moveTo(o[0]-4,o[1]-2);c.lineTo(o[0]-16,o[1]+10);c.moveTo(o[0]+6,o[1]+4);c.lineTo(o[0]-6,o[1]+16);c.stroke()}};
+
+/* ===== окружение ===== */
+const DE={
+tree(c,e,t){const[p,q]=P(e.x,e.y),s=e.s,w=Math.sin(t*1.5+e.ph)*1.6;ell(c,p+12*s,q+2,20*s,7*s,'rgba(45,35,10,.17)');c.fillStyle='#7a4f2a';c.fillRect(p-3*s,q-18*s,6*s,18*s);
+ circ(c,p-9*s+w*.4,q-26*s,12*s,'#2f7d32');circ(c,p+9*s+w*.4,q-28*s,11*s,'#2f7d32');circ(c,p+w,q-38*s,14*s,'#3f9a3a');circ(c,p-4*s+w,q-42*s,7*s,'#62b84c')},
+pine(c,e,t){const[p,q]=P(e.x,e.y),s=e.s,w=Math.sin(t*1.4+e.ph)*1.2;ell(c,p+12*s,q+2,18*s,6*s,'rgba(45,35,10,.17)');c.fillStyle='#6b4423';c.fillRect(p-3*s,q-10*s,6*s,10*s);
+ for(let i=0;i<4;i++){const y0=q-8*s-i*13*s,wd=(22-i*4.5)*s,o=w*i*.25;poly(c,[[p-wd+o,y0],[p+wd+o,y0],[p+o+w*.3,y0-22*s]],i%2?'#2f6f3a':'#3a8044','#173b20')}},
+rock(c,e){const[p,q]=P(e.x,e.y),s=e.s*.9;ell(c,p+8*s,q+2,18*s,6*s,'rgba(45,35,10,.2)');
+ const pt=[[-15,0],[-12,-11],[-3,-19],[9,-15],[15,-5],[13,0]].map(a=>[p+a[0]*s,q+a[1]*s]),m=[p-s,q-6*s];
+ poly(c,pt,'#8e8c92','#3d3c40');poly(c,[pt[0],pt[1],pt[2],m],'#b6b4ba');poly(c,[pt[2],pt[3],pt[4],m],'#a09ea4');
+ c.strokeStyle='#4a494e';c.lineWidth=1;c.beginPath();c.moveTo(m[0],m[1]);c.lineTo(p+4*s,q-1);c.moveTo(m[0],m[1]);c.lineTo(p-6*s,q-2);c.stroke()},
+bush(c,e){const[p,q]=P(e.x,e.y),s=e.s;circ(c,p-5*s,q-5*s,6*s,'#3f9a3a');circ(c,p+5*s,q-5*s,6*s,'#4aa843');circ(c,p,q-9*s,6*s,'#58b94a');c.fillStyle=e.ph>3?'#f4d03f':'#f08aa8';for(let i=0;i<3;i++){c.beginPath();c.arc(p-5*s+i*5*s,q-9*s+(i%2)*3,1.6,0,7);c.fill()}}};
+function npc(c,n,t){const[p,q]=P(n.x,n.y),w=Math.sin(t*9+n.ph)*2.2;ell(c,p+2,q,5,2.2,'rgba(40,30,10,.22)');
+ c.strokeStyle='#5a4630';c.lineWidth=2;c.beginPath();c.moveTo(p-1.5,q-5);c.lineTo(p-1.5+w,q);c.moveTo(p+1.5,q-5);c.lineTo(p+1.5-w,q);c.stroke();
+ c.fillStyle=n.c;c.fillRect(p-3.5,q-12,7,8);circ(c,p,q-15,3.6,'#f3c9a0','#0003');
+ if(n.k==0){ell(c,p,q-17,6.5,2.4,'#e8c46a');c.fillStyle='#e8c46a';c.beginPath();c.arc(p,q-17.5,3.2,PI,0);c.fill()}else{c.fillStyle=n.h;c.beginPath();c.arc(p,q-16.5,3.8,PI,0);c.fill()}}
+
+/* ===== островной мир, сохранение, игра ===== */
+const land=[],occ=[],env=[],segs=[],rip=[],npcs=[],parts=[],WW=N*64+240,HH=N*32+240,TX0=-N*32-120,TY0=-120;
+let S,cam={x:0,y:416,z:1},W=innerWidth,H=innerHeight,DPR=1,seaL,landL,cur=null,sel=null,tNow=0;
+let bulldoze=false,areaStart=null,areaEnd=null,areaDrag=false,areaTargets=[],buildCat='Все',miniClock=0,saveMessage='';
+const SETKEY='tinyisland.settings.v1';
+const RIVER_CELLS=new Set(['6,4','6,5','7,5','8,6','8,7','9,8','9,9','10,9']);
+const isRiver=(x,y)=>RIVER_CELLS.has(x+','+y);
+const DEFAULT_SETTINGS={musicOn:true,musicVolume:.32,soundsOn:true,soundVolume:.55,vibration:true,grid:true,confirmDemolish:true,animations:true,water:true,autoSave:true,lastSaved:'',saveSize:0};
+function readSettings(){try{const o=JSON.parse(localStorage.getItem(SETKEY)||'null');return o&&typeof o==='object'?{...DEFAULT_SETTINGS,...o}: {...DEFAULT_SETTINGS}}catch(e){return {...DEFAULT_SETTINGS}}}
+let settings=readSettings();
+const RICON={coins:'🪙',wood:'🪵',stone:'🪨',food:'🥕',water:'💧',energy:'⚡'};
+/* Генератор шума не использует внешние аудиофайлы. */
+let audioCtx=null,musicBus=null,sfxBus=null,ambientGain=null,musicTimer=0,musicStep=0;
+function ensureAudio(){
+ if(audioCtx){if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});return}
+ try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;audioCtx=new AC();musicBus=audioCtx.createGain();musicBus.gain.value=settings.musicOn?settings.musicVolume:0;musicBus.connect(audioCtx.destination);sfxBus=audioCtx.createGain();sfxBus.gain.value=settings.soundsOn?settings.soundVolume:0;sfxBus.connect(audioCtx.destination);
+  const n=Math.floor(audioCtx.sampleRate*2),buf=audioCtx.createBuffer(1,n,audioCtx.sampleRate),a=buf.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*.35;const src=audioCtx.createBufferSource();src.buffer=buf;src.loop=true;const filt=audioCtx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=360;ambientGain=audioCtx.createGain();ambientGain.gain.value=.11;src.connect(filt);filt.connect(ambientGain);ambientGain.connect(musicBus);src.start();scheduleMusic();
+ }catch(e){audioCtx=null}
+}
+function syncAudio(){if(!audioCtx)return;const t=audioCtx.currentTime;musicBus.gain.setTargetAtTime(settings.musicOn?settings.musicVolume:0,t,.08);sfxBus.gain.setTargetAtTime(settings.soundsOn?settings.soundVolume:0,t,.04)}
+function tone(freq,dur=.25,wave='sine',vol=.12,bus=sfxBus,delay=0){if(!audioCtx||!bus)return;try{const o=audioCtx.createOscillator(),v=audioCtx.createGain(),st=audioCtx.currentTime+delay;o.type=wave;o.frequency.setValueAtTime(freq,st);v.gain.setValueAtTime(.0001,st);v.gain.exponentialRampToValueAtTime(Math.max(.001,vol),st+.025);v.gain.exponentialRampToValueAtTime(.0001,st+dur);o.connect(v);v.connect(bus);o.start(st);o.stop(st+dur+.03)}catch(e){}}
+function scheduleMusic(){if(!audioCtx)return;const scale=[0,2,4,7,9,12,14],base=196;const n=scale[(Math.random()*scale.length)|0],oct=musicStep%7===0?2:1; if(settings.musicOn){tone(base*Math.pow(2,(n+oct*12)/12),.7,musicStep%4===0?'triangle':'sine',.14,musicBus);if(musicStep%3===0)tone(base*.5,.9,'sine',.06,musicBus,.04)}musicStep++;musicTimer=setTimeout(scheduleMusic,1050+Math.random()*500)}
+function sfx(type){if(!settings.soundsOn)return;ensureAudio();const C={click:[620,.055,'sine',.055],build:[210,.16,'triangle',.18],demolish:[95,.38,'sawtooth',.18],collect:[840,.1,'sine',.12],coins:[980,.18,'triangle',.11],success:[740,.36,'sine',.12],error:[160,.22,'square',.08]};const a=C[type]||C.click;tone(a[0],a[1],a[2],a[3],sfxBus);if(type==='success'){tone(990,.26,'sine',.1,sfxBus,.12);tone(1180,.28,'sine',.08,sfxBus,.25)}if(type==='demolish'){tone(65,.32,'sawtooth',.1,sfxBus,.06)}}
+
+function genWorld(){const R=rnd(7),ph=[R()*6,R()*6,R()*6];
+ for(let y=0;y<N;y++){land[y]=[];occ[y]=[];for(let x=0;x<N;x++){const dx=(x+.5-N/2)/(N/2),dy=(y+.5-N/2)/(N/2),a=Math.atan2(dy,dx);const d=Math.max(Math.abs(dx),Math.abs(dy))*.6+Math.hypot(dx,dy)*.5+Math.sin(a*3+ph[0])*.05+Math.sin(a*5+ph[1])*.035+Math.sin(a*2+ph[2])*.05;land[y][x]=d<.68?1:0;occ[y][x]=0}}
+ const isl=(cx,cy,r,v)=>{for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(Math.hypot(x-cx,y-cy)<r&&!land[y][x]){land[y][x]=v;occ[y][x]=3}};isl(2.5,12,2.1,2);isl(5,24,1.7,1);isl(23,5,1.25,1);
+ let rx=0;for(let x=0;x<N;x++)if(land[15][x]===1&&!occ[15][x])rx=x;START.find(s=>s[0]==='dock')[1]=Math.min(N-3,rx+1);
+ const reserved=new Set();START.forEach(([t,x,y])=>{const d=B[t];for(let j=y-1;j<y+d.h+1;j++)for(let i=x-1;i<x+d.w+1;i++)reserved.add(i+','+j)});
+ const E=rnd(11);for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x]===1&&!occ[y][x]&&!reserved.has(x+','+y)&&!isRiver(x,y)){const r=E(),k=r<.12?'tree':r<.20?'pine':r<.24?'rock':r<.34?'bush':0;if(k){env.push({k,x:x+.5,y:y+.5,s:.85+E()*.35,ph:E()*6,cool:0});if(k!=='bush')occ[y][x]=1}}
+ [[2,11],[3,12.2],[2.2,13.2],[3.4,10.6]].forEach(([x,y],i)=>env.push({k:'rock',x,y,s:1+i%2*.4,ph:i,cool:0}));
+ env.push({k:'tree',x:4.7,y:23.8,s:1.1,ph:1,cool:0},{k:'tree',x:5.7,y:24.4,s:1,ph:2,cool:0},{k:'bush',x:5.2,y:24.7,s:1,ph:4,cool:0},{k:'waterfall',x:6.2,y:4.4,s:1,ph:0,cool:0});
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x])for(const[dx,dy,x1,y1,x2,y2]of[[-1,0,0,0,0,1],[1,0,1,0,1,1],[0,-1,0,0,1,0],[0,1,0,1,1,1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=N||ny>=N||!land[ny][nx])segs.push([x+x1,y+y1,x+x2,y+y2,dx,dy,(x*7+y*3)%9])}
+ const R2=rnd(9);for(let i=0;i<110;i++)rip.push({x:TX0+R2()*WW,y:TY0+R2()*HH,r:5+R2()*15,ph:R2()*6});
+ const R3=rnd(3),cols=['#f08aa8','#5aa0e0','#e8a23a','#6cbf6c','#b07ad8','#e86a5a','#4ab8a8','#d8d050'];const fc=[];for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++)if(land[j][i]===1&&!occ[j][i])fc.push([i,j]);for(let i=0;i<8;i++){const f=fc[(R3()*fc.length)|0]||[12,12];npcs.push({x:f[0]+.5,y:f[1]+.5,tx:f[0]+.5,ty:f[1]+.5,sp:.45+R3()*.45,w:R3(),ph:R3()*6,c:cols[i],k:i%3,h:['','#c0392b','#2c7a7b'][i%3]||'#8e44ad',d:[1,0]})}}
+function layer(w,h,s,f){const e=document.createElement('canvas');e.width=w*s;e.height=h*s;const c=e.getContext('2d');c.setTransform(s,0,0,s,-TX0*s,-TY0*s);f(c);return e}
+function buildLayers(){const R=rnd(3);seaL=layer(WW,HH,.5,c=>{c.fillStyle='#18b8cf';c.fillRect(TX0,TY0,WW,HH);for(let i=0;i<220;i++){const rx=18+R()*100;ell(c,TX0+R()*WW,TY0+R()*HH,rx,rx*.36,R()<.5?'rgba(0,110,170,.09)':'rgba(130,255,240,.13)')}});
+ landL=layer(WW,HH,CS,c=>{const dia=(x,y)=>[P(x,y),P(x+1,y),P(x+1,y+1),P(x,y+1)];c.save();c.shadowColor='rgba(175,255,245,.9)';c.shadowBlur=33*CS;for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x])poly(c,dia(x,y),'#f1d58f');c.restore();
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=land[y][x];if(!v)continue;const r=R(),col=v===2?`rgb(${150-r*22|0},${143-r*22|0},${136-r*20|0})`:`rgb(${242-r*6|0},${216-r*15|0},${148-r*20|0})`;poly(c,dia(x,y),col,col);for(let i=0;i<4;i++){const p=P(x+R(),y+R());c.fillStyle=R()<.5?'rgba(190,140,60,.32)':'rgba(255,245,200,.5)';c.beginPath();c.arc(p[0],p[1],.7+R()*1.1,0,7);c.fill()}if(R()<.15){const p=P(x+R(),y+R());ell(c,p[0],p[1],2.6,1.5,v===2?'#6e6a68':'#b9a98a')}}
+ /* Узкая извилистая речка и водопад нарисованы вектором прямо на слое острова. */
+ const river=[[6.2,4.4],[6.9,5.2],[7.7,5.9],[8.4,6.8],[8.8,7.8],[9.5,8.6],[10.0,9.4]];c.lineCap='round';c.lineJoin='round';c.beginPath();river.forEach((v,i)=>{const q=P(v[0],v[1]);if(!i)c.moveTo(q[0],q[1]);else c.lineTo(q[0],q[1])});c.strokeStyle='#087ca0';c.lineWidth=17;c.stroke();c.strokeStyle='#27c8e3';c.lineWidth=12;c.stroke();c.strokeStyle='rgba(228,255,255,.85)';c.lineWidth=2.4;c.stroke();
+ for(const s of segs){const a=P(s[0],s[1]),b=P(s[2],s[3]);c.strokeStyle='#e2b86c';c.lineWidth=5;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke()}for(const s of segs){const a=P(s[0]+s[4]*.05,s[1]+s[5]*.05),b=P(s[2]+s[4]*.05,s[3]+s[5]*.05);c.strokeStyle='rgba(255,255,255,.88)';c.lineWidth=2.3;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke()}})}
+const free=(i,j)=>!!land[j]&&land[j][i]===1&&!occ[j][i];
+function freeCells(){const f=[];for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(free(i,j))f.push([i,j]);return f}
+DE.waterfall=function(c,e,t){const[p,q]=P(e.x,e.y),v=settings.animations?t:0;ell(c,p+2,q+5,28,9,'rgba(19,136,175,.42)');poly(c,[[p-9,q-14],[p+9,q-14],[p+7,q+19],[p-5,q+19]],'#31cce4','#e6ffff');for(let i=0;i<5;i++){const xx=p-6+i*3+Math.sin(v*3+i)*1.5;c.strokeStyle='rgba(240,255,255,.82)';c.lineWidth=1.5;c.beginPath();c.moveTo(xx,q-10);c.lineTo(xx+Math.sin(v*2+i)*2,q+16);c.stroke()}ell(c,p,q+19,23,7,'rgba(70,224,240,.78)')};
+
+/* Валидатор учитывает береговую линию и особые клетки мостика/причала. */
+function canPlace(t,x,y,w,h){const d=B[t];let waterCells=0,landCells=0;
+ for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++){if(i<0||j<0||i>=N||j>=N)return'Это за пределами карты';const o=occ[j][i];if(o)return o===1?'Здесь деревья или камни':o===2?'Клетка уже занята зданием':'Скалистый островок — строить нельзя';const v=land[j][i],river=isRiver(i,j);if(d.water){if(v!==0)return'Причал ставится на морские клетки'}else if(d.bridge){if(v===2)return'На скалы мост не поставить';if(v===0||river)waterCells++;else landCells++}else if(river)return'Здесь река — нужен мостик';else if(v!==1)return v===2?'Скалистый участок — строить нельзя':'Здесь вода — строить нельзя'}
+ if(d.water){let near=false;for(let j=y-1;j<=y+h;j++)for(let i=x-1;i<=x+w;i++)if((i<x||i>=x+w||j<y||j>=y+h)&&land[j]&&land[j][i]===1)near=true;if(!near)return'Причал должен примыкать к берегу'}
+ if(d.bridge&&(!waterCells||!landCells))return'Мостик должен соединять берег и воду';return''}
+function addB(t,x,y,r,t0,lv=1){const[w,h]=fpT(t,r),b={t,x,y,r,w,h,t0,s:(x*7+y*3)%6,lv:cl(lv||1,1,3)};S.b.push(b);mark(b,2);return b}
+function mark(b,v){for(let j=b.y;j<b.y+b.h;j++)for(let i=b.x;i<b.x+b.w;i++)if(occ[j]&&occ[j][i]!==3)occ[j][i]=v}
+const baseResources=()=>({coins:1000,wood:100,stone:80,food:50,water:30,energy:20});
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function load(){let o=null;try{o=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}S={res:baseResources(),b:[],acc:{},q:[0,0,0,0,0],rewards:[],dailyDate:todayKey(),dailyTaps:0,dailyDone:false};for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(occ[j][i]===2)occ[j][i]=0;
+ let list=START.map(v=>v.slice());if(o&&[1,2].includes(o.v)&&o.res&&Array.isArray(o.b)){for(const k of Object.keys(S.res))if(Number.isFinite(o.res[k])&&o.res[k]>=0)S.res[k]=Math.floor(o.res[k]);list=o.b;if(Array.isArray(o.q))S.q=S.q.map((_,i)=>o.q[i]?1:0);if(Array.isArray(o.rewards))S.rewards=o.rewards.filter(v=>typeof v==='string');S.dailyDate=typeof o.dailyDate==='string'?o.dailyDate:todayKey();S.dailyTaps=Number.isFinite(o.dailyTaps)?Math.max(0,o.dailyTaps):0;S.dailyDone=!!o.dailyDone}
+ if(S.dailyDate!==todayKey()){S.dailyDate=todayKey();S.dailyTaps=0;S.dailyDone=false}
+ if(o&&Array.isArray(o.nodes))for(let i=0;i<Math.min(env.length,o.nodes.length);i++){if(Number.isFinite(o.nodes[i]))env[i].cool=Math.max(0,o.nodes[i])}
+ /* Если недавно собранный ресурсный узел находится под сохранённой постройкой, он не должен мешать восстановлению сейва. */
+ for(const v of list){if(!Array.isArray(v))continue;const[t,x,y,r]=v;if(!B[t]||!Number.isInteger(x)||!Number.isInteger(y))continue;const[w,h]=fpT(t,r?1:0);for(const e of env){if(!['tree','pine','rock'].includes(e.k))continue;const ex=Math.floor(e.x),ey=Math.floor(e.y);if(ex>=x&&ex<x+w&&ey>=y&&ey<y+h){if(occ[ey]&&occ[ey][ex]===1)occ[ey][ex]=0;if(e.cool<=0)e.cool=3}}}
+ for(const e of list){if(!Array.isArray(e))continue;const[t,x,y,r,lv]=e;if(!B[t]||!Number.isInteger(x)||!Number.isInteger(y))continue;const rr=r?1:0,[w,h]=fpT(t,rr);if(!canPlace(t,x,y,w,h))addB(t,x,y,rr,-99,lv||1)}
+}
+function saveSettings(){try{localStorage.setItem(SETKEY,JSON.stringify(settings))}catch(e){}}
+function save(force=false){if(!S||(!force&&!settings.autoSave))return;try{const obj={v:2,res:S.res,b:S.b.map(b=>[b.t,b.x,b.y,b.r,b.lv]),q:S.q,rewards:S.rewards,dailyDate:S.dailyDate,dailyTaps:S.dailyTaps,dailyDone:S.dailyDone,nodes:env.map(e=>Math.round((e.cool||0)*10)/10)};const data=JSON.stringify(obj);localStorage.setItem(KEY,data);settings.lastSaved=new Date().toISOString();settings.saveSize=new Blob([data]).size;saveSettings();saveMessage='Сохранено';}catch(e){saveMessage='Не удалось сохранить (хранилище недоступно)'}}
+
+/* ===== интерфейс и игровой цикл ===== */
+const afford=c=>Object.keys(c).every(k=>(S.res[k]||0)>=c[k]);
+const costH=c=>Object.keys(c).map(k=>`<span class="${S.res[k]>=c[k]?'':'no'}"><i style="background:${RC[k]}"></i>${c[k]}</span>`).join('');
+const cnt=t=>S.b.filter(b=>b.t===t).length;
+function population(){return Math.floor(S.b.reduce((n,b)=>n+(B[b.t].pop||0)*(1+(b.lv-1)*.35),0))}
+function happiness(){return Math.round(cl(62+S.b.reduce((n,b)=>n+(B[b.t].happy||0)*(1+(b.lv-1)*.2),0)-S.b.length*.035,35,100))}
+function workers(){return {available:Math.floor(population()*.42),needed:S.b.reduce((n,b)=>n+(B[b.t].workers||0),0)}}
+function workerFactor(){const w=workers();return w.needed?cl(w.available/w.needed,.15,1):1}
+function production(){const p={};for(const b of S.b)for(const k in B[b.t].p)p[k]=(p[k]||0)+B[b.t].p[k]*(1+(b.lv-1)*.45);const f=workerFactor()*(.55+happiness()/220);for(const k in p)p[k]*=f;return p}
+function townLevel(){const p=population(),n=S.b.length;if(p>=130||n>=40)return {name:'Порт',n:4};if(p>=60||n>=25)return {name:'Городок',n:3};if(p>=20||n>=15)return {name:'Посёлок',n:2};return {name:'Деревня',n:1}}
+let tt=0;function toast(m,bad=false){if(bad){sfx('error');hap('error')}const e=$('toast');e.textContent=m;e.className='pa on'+(bad?' bad':'');clearTimeout(tt);tt=setTimeout(()=>e.className='pa',2500)}
+$('res').innerHTML=Object.keys(RN).map(k=>`<div class="ch pa" title="${RN[k]}"><span class="ico">${RICON[k]}</span><span id="r_${k}">0</span></div>`).join('')+'<div class="ch pa" title="Жители"><span class="ico">👥</span><span id="r_pop">0</span></div>';
+function chips(){for(const k in RN){const e=$('r_'+k);if(e)e.textContent=Math.floor(S.res[k]||0)}$('r_pop').textContent=population();const l=townLevel();$('level').textContent=`${l.name} · Уровень ${l.n} · Счастье ${happiness()}%`}
+const Q=[
+ {title:'Построить 5 домов',check:()=>cnt('house')>=5,reward:{coins:100}},
+ {title:'Построить вторую ферму',check:()=>cnt('farm')>=2,reward:{wood:30}},
+ {title:'Накопить 1 500 монет',check:()=>S.res.coins>=1500,reward:{stone:50}},
+ {title:'Построить источник энергии',check:()=>cnt('windmill')+cnt('solar')>=1,reward:{energy:25}},
+ {title:'Разбить парк или сад',check:()=>cnt('park')+cnt('garden')>=1,reward:{coins:180,food:20}}
+];
+function chk(){Q.forEach((q,i)=>{if(!S.q[i]&&q.check()){S.q[i]=1;for(const k in q.reward)S.res[k]=(S.res[k]||0)+q.reward[k];sfx('success');toast('Задание выполнено! Награда: '+prodT(q.reward));save()}})}
+function upd(){chips();chk();drawMini()}
+const pn=$('panel');let pmode='';
+function openP(m,title,html){pmode=m;$('pt').textContent=title;$('pc').innerHTML=html;pn.classList.add('on')}
+function closeP(){pn.classList.remove('on');pmode='';sel=null}
+function preview(k,t){const c=k.getContext('2d'),d=B[t],s=d.ps||Math.min(1.25,1.2/Math.max(d.w,d.h)),ic=iso(d.w/2,d.h/2);c.clearRect(0,0,k.width,k.height);c.setTransform(s,0,0,s,60-ic[0]*s,57-ic[1]*s);drawStructure(c,0,0,d.w,d.h,t,0,0,1);c.setTransform(1,0,0,1,0,0)}
+const cats=['Все','Жильё','Дороги и уют','Госструктуры','Бизнес','Производство','Энергия','Остров'];
+function showB(category=buildCat){buildCat=category;openP('b','Строительство',`<div id="cats">${cats.map(x=>`<button class="btn ${x===buildCat?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div id="cards"></div><p class="muted">Выберите здание: призрак появится на карте. Перемещайте его пальцем, затем нажмите «Построить».</p>`);$('cats').querySelectorAll('[data-cat]').forEach(e=>e.onclick=()=>showB(e.dataset.cat));const cards=$('cards');for(const t of Object.keys(B)){const d=B[t];if(buildCat!=='Все'&&d.g!==buildCat)continue;const el=document.createElement('div');el.className='card'+(afford(d.c)?'':' no');const k=document.createElement('canvas');k.width=120;k.height=78;preview(k,t);el.append(k);el.insertAdjacentHTML('beforeend',`<b>${d.n}</b><small>${costH(d.c)}</small><small style="opacity:.78">${d.w}×${d.h} кл.${d.pop?` · 👥${d.pop}`:''}</small>`);el.onclick=()=>{sfx('click');startBuild(t)};cards.append(el)}}
+function showQ(){let html=Q.map((q,i)=>`<div class="row"><span>${S.q[i]?'✅ ':''}${q.title}</span><span>${S.q[i]?'готово':'награда: '+prodT(q.reward)}</span></div>`).join('');html+=`<div class="sectionTitle">Ежедневное задание</div><p>Соберите ресурсы с природы 5 раз — ${Math.min(S.dailyTaps,5)}/5.</p><p>${S.dailyDone?'✅ Награда уже получена.':S.dailyTaps>=5?'<button class="btn" id="dailyClaim">Забрать награду: 120 монет и 15 еды</button>':'Вознаграждение: 120 монет и 15 еды'}</p>`;openP('q','Задания',html);const b=$('dailyClaim');if(b)b.onclick=()=>{if(S.dailyTaps<5||S.dailyDone)return;S.res.coins+=120;S.res.food+=15;S.dailyDone=true;sfx('success');upd();save();showQ();toast('Ежедневная награда получена!')}}
+function showI(){const pr=production(),w=workers(),l=townLevel();openP('i','Остров и экономика',`<div class="row"><span>Статус поселения</span><b>${l.name} · ${l.n}</b></div><div class="row"><span>Жители</span><b>${population()}</b></div><div class="row"><span>Счастье жителей</span><b>${happiness()}%</b></div><div class="row"><span>Зданий</span><b>${S.b.length}</b></div><div class="row"><span>Рабочие</span><b>${w.available} свободно / ${w.needed} нужно</b></div><div class="row"><span>Производство</span><span>${Object.keys(pr).length?prodT(pr)+'/с':'—'}</span></div><div class="row"><span>Сохранение</span><span>${settings.lastSaved?new Date(settings.lastSaved).toLocaleString():'ещё не сохранялось'}</span></div>`)}
+const rewardList=[
+ {id:'starter',n:'Маленький город',d:'Построить 15 зданий',ok:()=>S.b.length>=15,r:{coins:300,wood:25}},
+ {id:'citizens',n:'Большая семья',d:'Население 50 жителей',ok:()=>population()>=50,r:{coins:250,energy:20}},
+ {id:'green',n:'Зелёный остров',d:'Построить 3 парка или сада',ok:()=>cnt('park')+cnt('garden')>=3,r:{food:35,wood:30}},
+ {id:'happy',n:'Остров счастья',d:'Достичь счастья 80%',ok:()=>happiness()>=80,r:{coins:450,water:15}},
+ {id:'port',n:'Морской порт',d:'Достичь уровня «Порт»',ok:()=>townLevel().n===4,r:{coins:1000,stone:60}}
+];
+function showRewards(){openP('r','Награды и достижения',rewardList.map(r=>{const claimed=S.rewards.includes(r.id),ready=r.ok();return `<div class="row"><span><b>${claimed?'✅ ':ready?'🌟 ':'🔒 '}${r.n}</b><br><span class="muted">${r.d} · ${prodT(r.r)}</span></span><span>${claimed?'получено':ready?`<button class="btn" data-reward="${r.id}">Забрать</button>`:'ещё не открыто'}</span></div>`}).join(''));$('pc').querySelectorAll('[data-reward]').forEach(e=>e.onclick=()=>{const r=rewardList.find(x=>x.id===e.dataset.reward);if(!r||S.rewards.includes(r.id)||!r.ok())return;for(const k in r.r)S.res[k]=(S.res[k]||0)+r.r[k];S.rewards.push(r.id);sfx('success');upd();save();showRewards();toast('Награда получена: '+prodT(r.r))})}
+function costForUpgrade(b,nextLevel=b.lv+1){const mul=nextLevel===2?1.25:1.8,o={};for(const k in B[b.t].c)o[k]=Math.ceil(B[b.t].c[k]*mul);return o}
+function totalCost(b){const o={...B[b.t].c};for(let lv=2;lv<=b.lv;lv++){const c=costForUpgrade(b,lv);for(const k in c)o[k]=(o[k]||0)+c[k]}return o}
+function removeB(b,withRefund=true){const d=B[b.t];if(withRefund){const c=totalCost(b);for(const k in c)S.res[k]=(S.res[k]||0)+Math.floor(c[k]/2)}mark(b,0);S.b.splice(S.b.indexOf(b),1);const p=P(b.x+b.w/2,b.y+b.h/2);for(let i=0;i<12;i++)parts.push({x:p[0]+(Math.random()-.5)*35,y:p[1]+(Math.random()-.5)*18,a:0,broken:1})}
+function demolishOne(b){if(settings.confirmDemolish){const refund={};const cost=totalCost(b);for(const k in cost)refund[k]=Math.floor(cost[k]/2);openP('confirm','Подтвердить снос',`<p>Снести «${B[b.t].n}»? Вернётся половина стоимости.</p><p><b>Возврат:</b> ${prodT(refund)||'без ресурсов'}</p><div class="actions"><button class="btn" id="yesDm">Снести</button><button class="btn" id="noDm">Оставить</button></div>`);$('yesDm').onclick=()=>{removeB(b,true);sfx('demolish');closeP();upd();save();toast('Здание снесено, половина стоимости возвращена')};$('noDm').onclick=closeP;return}removeB(b,true);sfx('demolish');closeP();upd();save();toast('Здание снесено')}
+function showSel(b){if(!S.b.includes(b))return;sel=b;const d=B[b.t],prod=Object.keys(d.p).length?prodT(d.p)+'/с':'не производит ресурсы',next=b.lv<3?costForUpgrade(b):null;openP('s',d.n,`<div class="row"><span>Размер</span><b>${b.w} × ${b.h} клетки</b></div><div class="row"><span>Уровень</span><b>${b.lv}/3</b></div><div class="row"><span>Эффект</span><span>${prod}${d.pop?` · +${Math.floor(d.pop*(1+(b.lv-1)*.35))} жителей`:''}${d.happy?` · счастье +${d.happy}`:''}</span></div>${next?`<p>Улучшение до уровня ${b.lv+1}: ${costH(next)}</p>`:'<p>Максимальный уровень улучшения.</p>'}<div class="actions"><button class="btn" id="moveB">↔ Переместить</button>${next?'<button class="btn" id="upgradeB">⬆ Улучшить</button>':''}<button class="btn" id="dm">🧱 Снести</button></div>`);$('moveB').onclick=()=>startMove(b);const u=$('upgradeB');if(u)u.onclick=()=>{const c=costForUpgrade(b);if(!afford(c)){toast('Не хватает ресурсов для улучшения',true);return}for(const k in c)S.res[k]-=c[k];b.lv++;sfx('success');upd();save();showSel(b);toast(`${d.n} улучшен до ${b.lv} уровня`)};$('dm').onclick=()=>demolishOne(b)}
+
+document.querySelectorAll('#bar button').forEach(b=>b.onclick=()=>{ensureAudio();sfx('click');const m=b.dataset.m;if(cur)cancel(false);if(bulldoze){bulldoze=false;areaStart=areaEnd=null;areaTargets=[]}if(pmode===m){closeP();return}if(m==='b')showB();else if(m==='q')showQ();else if(m==='r')showRewards();else if(m==='d'){closeP();bulldoze=true;areaStart=areaEnd=null;toast('Бульдозер: проведите по диагонали участка') }});
+$('pcl').onclick=()=>{sfx('click');closeP()};
+
+/* ===== размещение и переезд: камера полностью заблокирована до подтверждения ===== */
+const cell=(sx,sy)=>{const ix=(sx-W/2)/cam.z+cam.x,iy=(sy-H/2)/cam.z+cam.y;return[Math.floor((ix/32+iy/16)/2),Math.floor((iy/16-ix/32)/2)]};
+function setCur(cx,cy){const[w,h]=fpT(cur.t,cur.r);cur.cx=cx;cur.cy=cy;cur.x=cx-(w>>1);cur.y=cy-(h>>1);cur.w=w;cur.h=h;cur.err=canPlace(cur.t,cur.x,cur.y,w,h)}
+function showGhostUI(){ $('bt').textContent=cur?(cur.moveB?'Переезд: '+B[cur.t].n:B[cur.t].n):'';$('confirmPlace').textContent=cur?(cur.moveB?'Подтвердить переезд':'Построить'): 'Построить';$('rot').style.display=cur&&B[cur.t].rot?'':'none';$('bm').classList.toggle('on',!!cur);cv.style.cursor=cur?'crosshair':'grab'}
+function startBuild(t){closeP();bulldoze=false;areaStart=areaEnd=null;const c=cell(W/2,H/2);cur={t,r:0,moveB:null};setCur(c[0],c[1]);showGhostUI();toast('Двигайте призрак по клеткам. Камера заблокирована.')}
+function startMove(b){closeP();if(!S.b.includes(b))return;mark(b,0);cur={t:b.t,r:b.r,moveB:b,old:{x:b.x,y:b.y,r:b.r,w:b.w,h:b.h}};setCur(b.x+(b.w>>1),b.y+(b.h>>1));showGhostUI();toast('Выберите новое место и подтвердите переезд')}
+function cancel(returnToPanel=false){const wasBuild=!!cur&&!cur.moveB;const moving=!!(cur&&cur.moveB);const moved=moving?cur.moveB:null;if(moving){const b=cur.moveB;b.x=cur.old.x;b.y=cur.old.y;b.r=cur.old.r;b.w=cur.old.w;b.h=cur.old.h;mark(b,2)}cur=null;$('bm').classList.remove('on');cv.style.cursor=bulldoze?'crosshair':'grab';if(returnToPanel){if(moved&&S.b.includes(moved))showSel(moved);else if(wasBuild)showB(buildCat)}}
+function rotate(){if(cur&&B[cur.t].rot){cur.r^=1;setCur(cur.cx,cur.cy);sfx('click')}}
+function place(){if(!cur)return;if(cur.err){toast(cur.err,true);return}const d=B[cur.t];if(cur.moveB){const b=cur.moveB;b.x=cur.x;b.y=cur.y;b.r=cur.r;b.w=cur.w;b.h=cur.h;mark(b,2);cur=null;showGhostUI();sfx('build');upd();save();toast('Переезд завершён');return}
+ const miss=Object.keys(d.c).filter(k=>S.res[k]<d.c[k]);if(miss.length){toast('Не хватает ресурсов: '+miss.map(k=>RN[k]).join(', '),true);return}for(const k in d.c)S.res[k]-=d.c[k];const b=addB(cur.t,cur.x,cur.y,cur.r,tNow),p=P(b.x+b.w/2,b.y+b.h/2);for(let i=0;i<10;i++)parts.push({x:p[0]+(Math.random()-.5)*30,y:p[1]+(Math.random()-.5)*16,a:0,dust:1});sfx('build');hap('success');upd();save();toast(d.n+' построен!');setCur(cur.cx,cur.cy)}
+$('cx').onclick=()=>{sfx('click');cancel(true)};$('rot').onclick=rotate;$('confirmPlace').onclick=()=>{ensureAudio();place()};
+addEventListener('keydown',e=>{if(e.key==='Escape'){cur?cancel(true):closeP();if(bulldoze){bulldoze=false;areaStart=areaEnd=null}}else if(['r','R','к','К'].includes(e.key))rotate()});
+
+/* ===== сенсорное управление картой, сбор ресурсов и снос областью ===== */
+const ptr=new Map();let drag=0,pin0=0,lastPointer=null;
+function zoomAt(sx,sy,nz){if(cur||bulldoze)return;nz=cl(nz,.35,2.2);const bx=(sx-W/2)/cam.z+cam.x,by=(sy-H/2)/cam.z+cam.y;cam.z=nz;cam.x=bx-(sx-W/2)/nz;cam.y=by-(sy-H/2)/nz;clampCam();drawMini()}
+function clampCam(){cam.x=cl(cam.x,-N*16,N*16);cam.y=cl(cam.y,0,N*32)}
+function mapPoint(sx,sy){return{wx:(sx-W/2)/cam.z+cam.x,wy:(sy-H/2)/cam.z+cam.y}}
+function findNature(sx,sy){const {wx,wy}=mapPoint(sx,sy);let best=null,bd=Infinity;for(const e of env){if(!['tree','pine','rock','bush'].includes(e.k)||e.cool>0)continue;const p=P(e.x,e.y),off=e.k==='rock'?8:e.k==='bush'?9:30,dist=Math.hypot(wx-p[0],wy-(p[1]-off));if(dist<38&&dist<bd){best=e;bd=dist}}return best}
+function harvest(e){if(!e||e.cool>0)return;const j=Math.floor(e.y),i=Math.floor(e.x),gain=e.k==='rock'?{stone:2}:e.k==='bush'?{food:1}:{wood:2};for(const k in gain)S.res[k]+=gain[k];e.cool=28;if(e.k!=='bush'&&occ[j]&&occ[j][i]===1)occ[j][i]=0;S.dailyTaps=Math.min(5,(S.dailyTaps||0)+1);sfx(e.k==='bush'?'collect':'coins');hap('success');upd();save();toast('Собрано: '+prodT(gain));}
+function regionBuildings(){if(!areaStart||!areaEnd)return[];const x1=Math.min(areaStart[0],areaEnd[0]),x2=Math.max(areaStart[0],areaEnd[0]),y1=Math.min(areaStart[1],areaEnd[1]),y2=Math.max(areaStart[1],areaEnd[1]);return S.b.filter(b=>b.x<=x2&&b.x+b.w-1>=x1&&b.y<=y2&&b.y+b.h-1>=y1)}
+function regionRefund(list){const out={};for(const b of list){const c=totalCost(b);for(const k in c)out[k]=(out[k]||0)+Math.floor(c[k]/2)}return out}
+function confirmRegion(){areaTargets=regionBuildings();const r=regionRefund(areaTargets),count=areaTargets.length;openP('area','Снос участка',`<p>В выделенной области: <b>${count} зданий</b>.</p><p>Вернётся половина стоимости: <b>${prodT(r)||'нет возврата'}</b></p><p class="muted">Подтверждение для сноса участка обязательно.</p><div class="actions"><button class="btn" id="areaYes">Снести ${count} зданий</button><button class="btn" id="areaNo">Отмена</button></div>`);$('areaYes').onclick=()=>{if(!areaTargets.length){bulldoze=false;areaStart=areaEnd=null;closeP();return}for(const b of [...areaTargets])removeB(b,true);bulldoze=false;areaStart=areaEnd=null;areaTargets=[];closeP();sfx('demolish');upd();save();toast('Участок очищен')};$('areaNo').onclick=()=>{areaStart=areaEnd=null;areaTargets=[];bulldoze=false;closeP()}}
+cv.onpointerdown=e=>{ensureAudio();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,t:e.pointerType});drag=0;lastPointer={x:e.clientX,y:e.clientY};if(cur){const c=cell(e.clientX,e.clientY);setCur(c[0],c[1]);return}if(bulldoze){areaStart=cell(e.clientX,e.clientY);areaEnd=areaStart;areaDrag=true;drag=1;return}if(ptr.size===2){drag=1;const[a,b]=[...ptr.values()];pin0=Math.hypot(a.x-b.x)/cam.z}};
+cv.onpointermove=e=>{const p=ptr.get(e.pointerId);if(!p){if(cur&&e.pointerType==='mouse'){const c=cell(e.clientX,e.clientY);setCur(c[0],c[1])}return}const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;lastPointer={x:e.clientX,y:e.clientY};if(cur){if(Math.hypot(p.x-p.sx,p.y-p.sy)>3)drag=1;const c=cell(e.clientX,e.clientY);setCur(c[0],c[1]);return}if(bulldoze&&areaDrag){if(Math.hypot(p.x-p.sx,p.y-p.sy)>3)drag=1;areaEnd=cell(e.clientX,e.clientY);return}if(ptr.size===2){const[a,b]=[...ptr.values()];if(pin0>0)zoomAt((a.x+b.x)/2,(a.y+b.y)/2,Math.hypot(a.x-b.x,a.y-b.y)/pin0);return}if(Math.hypot(p.x-p.sx,p.y-p.sy)>6)drag=1;if(drag){cam.x-=dx/cam.z;cam.y-=dy/cam.z;clampCam();drawMini()}};
+cv.onpointerup=e=>{const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(cur){if(p){const c=cell(e.clientX,e.clientY);setCur(c[0],c[1])}return}if(bulldoze&&areaDrag){areaEnd=cell(e.clientX,e.clientY);areaDrag=false;if(p){confirmRegion()}return}if(p&&!drag&&!ptr.size)tap(e,p)};
+cv.onpointercancel=e=>{ptr.delete(e.pointerId);if(bulldoze)areaDrag=false};cv.onwheel=e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,cam.z*Math.exp(-e.deltaY*.0015))};cv.oncontextmenu=e=>{e.preventDefault();if(cur)cancel(true)};
+function tap(e,p){const c=cell(e.clientX,e.clientY);if(cur){setCur(c[0],c[1]);return}let f=null;for(let k=0;k<Math.min(4,S.b.length)&&!f;k++)f=S.b.find(b=>c[0]>=b.x&&c[0]<b.x+b.w&&c[1]>=b.y&&c[1]<b.y+b.h);if(f){sel=f;showSel(f);return}const node=findNature(e.clientX,e.clientY);if(node){harvest(node);return}closeP()}
+$('home').onclick=()=>{ensureAudio();sfx('click');cam.x=0;cam.y=416;cam.z=cl(W/1000,.72,1.4);clampCam();drawMini();toast('Камера в центре острова')};$('harvest').onclick=()=>{ensureAudio();sfx('click');toast('Нажмите на дерево, скалу или куст: получите ресурсы')};
+$('musicBtn').onclick=()=>{ensureAudio();settings.musicOn=!settings.musicOn;syncAudio();saveSettings();$('musicBtn').style.opacity=settings.musicOn?'1':'.45';toast(settings.musicOn?'Музыка включена':'Музыка выключена')};$('soundBtn').onclick=()=>{ensureAudio();settings.soundsOn=!settings.soundsOn;syncAudio();saveSettings();$('soundBtn').style.opacity=settings.soundsOn?'1':'.45';toast(settings.soundsOn?'Звуки включены':'Звуки выключены')};
+
+/* Миникарта: кодом рисует берег, здания и рамку текущего обзора. */
+const mini=$('mini'),mg=mini.getContext('2d'),MX=26,MY=20,MW=8, MH=4.5;
+function drawMini(){if(!mg||!land.length)return;mg.setTransform(1,0,0,1,0,0);mg.clearRect(0,0,mini.width,mini.height);mg.fillStyle='#27bfd0';mg.fillRect(0,0,mini.width,mini.height);mg.fillStyle='rgba(1,93,120,.25)';for(let i=0;i<80;i++){mg.beginPath();mg.ellipse((i*47)%260,(i*29)%160,5+(i%6)*2,2+(i%3),0,0,7);mg.fill()}
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x]){mg.fillStyle=land[y][x]===2?'#85898b':(x+y)%3===0?'#4caa56':'#70c65a';mg.fillRect(MX+x*MW,MY+y*MH,MW+.4,MH+.4)}
+ for(const b of S?.b||[]){mg.fillStyle=['road','path','bridge','park','garden','flowerbed','hedge'].includes(b.t)?'#e6d3a0':b.t==='tower'?'#65d9ed':'#f5a14b';mg.fillRect(MX+b.x*MW,MY+b.y*MH,Math.max(3,b.w*MW-1),Math.max(2,b.h*MH-1))}
+ const corners=[mapPoint(0,0),mapPoint(W,0),mapPoint(W,H),mapPoint(0,H)].map(p=>({x:(p.wx/32+p.wy/16)/2,y:(p.wy/16-p.wx/32)/2}));const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y),x1=cl(Math.min(...xs),0,N),y1=cl(Math.min(...ys),0,N),x2=cl(Math.max(...xs),0,N),y2=cl(Math.max(...ys),0,N);mg.strokeStyle='#fff';mg.lineWidth=2.5;mg.strokeRect(MX+x1*MW,MY+y1*MH,(x2-x1)*MW,(y2-y1)*MH);mg.strokeStyle='#39623e';mg.lineWidth=1;mg.strokeRect(MX,MY,N*MW,N*MH)}
+mini.onpointerdown=e=>{e.stopPropagation();const r=mini.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*mini.width,y=(e.clientY-r.top)/r.height*mini.height,cx=Math.floor((x-MX)/MW),cy=Math.floor((y-MY)/MH);if(cx>=0&&cy>=0&&cx<N&&cy<N){const q=P(cx+.5,cy+.5);cam.x=q[0];cam.y=q[1];clampCam();drawMini();sfx('click')}};
+
+/* ===== настройки: значения переживают сброс прогресса ===== */
+function checkSetting(id,key){return `<label class="setting"><span>${id}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''}></label>`}
+function rangeSetting(label,key){return `<label class="setting"><span>${label}</span><input type="range" min="0" max="1" step="0.05" value="${settings[key]}" data-range="${key}"><span class="val" id="v_${key}">${Math.round(settings[key]*100)}%</span></label>`}
+function showSettings(){openP('g','Настройки',`${checkSetting('Фоновая музыка','musicOn')}${rangeSetting('Громкость музыки','musicVolume')}${checkSetting('Звуки действий','soundsOn')}${rangeSetting('Громкость звуков','soundVolume')}${checkSetting('Виброотклик телефона','vibration')}${checkSetting('Сетка клеток при строительстве','grid')}${checkSetting('Подтверждать одиночный снос','confirmDemolish')}${checkSetting('Анимации персонажей и интерфейса','animations')}${checkSetting('Анимация воды','water')}${checkSetting('Автосохранение','autoSave')}<div class="sectionTitle">Сохранение</div><p>Последнее сохранение: <b>${settings.lastSaved?new Date(settings.lastSaved).toLocaleString():'ещё не сохранялось'}</b></p><p>Размер сейва: <b>${settings.saveSize?settings.saveSize+' байт':'—'}</b>. Настройки хранятся отдельно от прогресса.</p><div class="actions"><button class="btn" id="saveNow">💾 Сохранить сейчас</button><button class="btn" id="resetGame">Сбросить прогресс</button></div><p class="muted">Музыка и звуки генерируются в браузере; сетевые аудиофайлы не используются.</p>`);
+ $('pc').querySelectorAll('[data-setting]').forEach(e=>e.onchange=()=>{settings[e.dataset.setting]=e.checked;saveSettings();syncAudio();if(e.dataset.setting==='musicOn')$('musicBtn').style.opacity=e.checked?'1':'.45';if(e.dataset.setting==='soundsOn')$('soundBtn').style.opacity=e.checked?'1':'.45';toast('Настройки обновлены')});$('pc').querySelectorAll('[data-range]').forEach(e=>e.oninput=()=>{settings[e.dataset.range]=Number(e.value);const v=$('v_'+e.dataset.range);if(v)v.textContent=Math.round(Number(e.value)*100)+'%';syncAudio();saveSettings()});$('saveNow').onclick=()=>{save(true);showSettings();toast('Прогресс сохранён')};$('resetGame').onclick=()=>{if(confirm('Сбросить прогресс острова? Настройки не изменятся.')){try{localStorage.removeItem(KEY)}catch(e){}location.reload()}}}
+$('gear').onclick=()=>{ensureAudio();sfx('click');if(cur)cancel(false);showSettings()};
+
+/* ===== отрисовка зданий: индивидуальные формы плюс общий псевдо-3D конструктор ===== */
+function drawStructure(c,x,y,w,h,t,time=0,seed=0,lv=1){if(DR[t]){DR[t](c,x,y,w,h,settings.animations?time:0,seed);if(lv>1){const p=P(x+w/2,y+h/2,45+lv*3);circ(c,p[0],p[1],2.5+lv,'#ffdf70','#9b712c')}return}drawGeneric(c,x,y,w,h,t,settings.animations?time:0,lv)}
+function tileBase(c,x,y,w,h,col){poly(c,[P(x,y),P(x+w,y),P(x+w,y+h),P(x,y+h)],col,'rgba(64,67,40,.25)')}
+function drawGeneric(c,x,y,w,h,t,time,lv){const d=B[t],co=d.col||'#cba66c';shd(c,x,y,w,h,.2);if(t==='road'){tileBase(c,x,y,w,h,'#5a626b');const a=P(x+.12,y+.5),b=P(x+.88,y+.5);c.strokeStyle='#e2d7aa';c.lineWidth=1.4;c.setLineDash([3,4]);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();c.setLineDash([]);return}
+ if(t==='path'){tileBase(c,x,y,w,h,'#c5a06b');for(let i=0;i<5;i++){const p=P(x+.1+(i*.17)%Math.max(.6,w-.2),y+.2+(i*.23)%Math.max(.5,h-.3));ell(c,p[0],p[1],2,1,'#e7c68c')}return}
+ if(t==='bridge'){tileBase(c,x,y,w,h,'rgba(15,140,180,.17)');const n=8;for(let i=0;i<n;i++){const f=i/n,g=(i+1)/n;poly(c,[P(x+w*f,y+.12,7),P(x+w*g,y+.12,7),P(x+w*g,y+h-.12,7),P(x+w*f,y+h-.12,7)],i%2?'#c99454':'#ad7539','#704a25')}for(const xx of [x+.1,x+w-.15])box(c,xx,y+.1,.09,h-.2,7,20,'#76502d');return}
+ if(['flowerbed','hedge','park','garden'].includes(t)){tileBase(c,x,y,w,h,t==='flowerbed'?'#4c8d43':'#4e9c43');if(t==='hedge'){for(let i=0;i<5;i++){const p=P(x+.15+i*(w-.3)/4,y+h*.5);circ(c,p[0],p[1]-7,5,'#2e7d38');circ(c,p[0]+3,p[1]-10,4,'#4eaa4c')}}else if(t==='flowerbed'){for(let i=0;i<8;i++){const px=x+.15+((i*7)%17)/18*(w-.3),py=y+.15+((i*5)%13)/14*(h-.3),p=P(px,py,3);circ(c,p[0],p[1],2.2,['#ec5980','#f1d14e','#f4eee2','#9f7ee6'][i%4],'#fff7d0')}}else{DE.tree(c,{x:x+w*.34,y:y+h*.48,s:.36,ph:time},time);DE.tree(c,{x:x+w*.72,y:y+h*.65,s:.30,ph:time+2},time);if(t==='garden'){for(let i=0;i<3;i++){const p=P(x+.25+i*.28,y+h*.75);circ(c,p[0],p[1]-3,4,'#e35f4e','#7b422e')}}}return}
+ if(t==='bench'){tileBase(c,x,y,w,h,'#84b45c');box(c,x+.18,y+.35,w-.35,.16,0,10,'#a96e37');box(c,x+.2,y+.31,w-.4,.13,10,14,'#dca45d');box(c,x+.25,y+.32,.08,.12,0,10,'#6f4b2b');box(c,x+w-.32,y+.32,.08,.12,0,10,'#6f4b2b');return}
+ if(t==='lamp'){tileBase(c,x,y,w,h,'#8fbf63');box(c,x+.46,y+.42,.08,.08,0,45,'#57483c');box(c,x+.35,y+.32,.3,.22,45,51,'#504e4a');const p=P(x+.5,y+.5,51),night=(Math.sin(time*.012-1)+1)/2,glow=night>.68?.8:.16;ell(c,p[0],p[1]-2,5+night*3,4+night*2,`rgba(255,227,131,${glow})`);circ(c,p[0],p[1]-2,2.5,'#fff0a3','#a97f45');return}
+ if(t==='arch'){tileBase(c,x,y,w,h,'#79aa58');box(c,x+.12,y+.2,.18,.18,0,35,'#d4c6a2');box(c,x+w-.3,y+.2,.18,.18,0,35,'#b2a17d');box(c,x+.12,y+.2,w-.24,.18,34,41,'#e5d5af');return}
+ if(t==='fountain'){tileBase(c,x,y,w,h,'#68a64d');const p=P(x+w/2,y+h/2);ell(c,p[0],p[1],25,12,'#8d9b9d');ell(c,p[0],p[1]-2,21,10,'#37bedd');ell(c,p[0],p[1]-5,12,6,'#8ee6eb');box(c,x+w/2-.07,y+h/2-.07,.14,.14,0,19,'#b9d6d3');ell(c,p[0]+Math.sin(time*3)*3,p[1]-24,2,5,'#b2f5ff');return}
+ if(t==='solar'){tileBase(c,x,y,w,h,'#78aa59');for(let i=0;i<3;i++)for(let j=0;j<2;j++){poly(c,[P(x+.12+i*.55,y+.18+j*.45,5),P(x+.58+i*.55,y+.18+j*.45,5),P(x+.58+i*.55,y+.52+j*.45,7),P(x+.12+i*.55,y+.52+j*.45,7)],'#266b9c','#b3dce9');c.strokeStyle='#8fcfe2';c.lineWidth=.7;c.beginPath();const a=P(x+.35+i*.55,y+.18+j*.45,6),b=P(x+.35+i*.55,y+.52+j*.45,6);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke()}return}
+ if(t==='windmill'){tileBase(c,x,y,w,h,'#75a954');box(c,x+.65,y+.6,.7,.7,0,31,'#e7ded0');roof(c,x+.65,y+.6,.7,.7,31,9,'#c8b9a3');const p=P(x+1,y+.95,52),a=time*1.5;for(let i=0;i<4;i++){const q=a+i*Math.PI/2;c.strokeStyle='#f6f1e7';c.lineWidth=4;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(p[0]+Math.cos(q)*23,p[1]+Math.sin(q)*23);c.stroke()}circ(c,p[0],p[1],4,'#977f5e');return}
+ if(t==='beehive'){tileBase(c,x,y,w,h,'#89b45b');box(c,x+.28,y+.32,.45,.44,0,21,'#e8bd42');for(let i=0;i<3;i++){const p=P(x+.18+i*.3,y+.75);circ(c,p[0],p[1]-4,3,'#f6df61','#a67c24')}return}
+ if(t==='tower'){tileBase(c,x,y,w,h,'#75ad64');const ht=88+(lv-1)*20;box(c,x+.18,y+.18,w-.36,h-.36,0,ht,'#5fb7d2');for(let z=12;z<ht-3;z+=11){box(c,x+.22,y+.17,w-.44,.035,z,z+1,'#d8f8ff');box(c,x+.17,y+.18,.035,h-.36,z,z+1,'#c2f4ff')}box(c,x+.32,y+.32,.12,.10,ht,ht+5,'#e8f5f7');return}
+ if(t==='dock'){DR.dock(c,x,y,w,h,time);return}
+ tileBase(c,x,y,w,h,t==='park'?'#5fae54':'#80b45e');const tall=t==='apartment'?48:t==='hotel'?43:t==='hospital'?35:t==='townhall'?40:t==='fire'?30:t==='police'?28:t==='school'?31:t==='windmill'?38:t==='warehouse'?21:t==='lighthouse'?40:t==='farm'?18:t==='sawmill'?24:t==='cafe'||t==='shop'||t==='post'||t==='bakery'?23:t==='workshop'?28:29;const height=tall+(lv-1)*7;box(c,x+.12,y+.12,w-.24,h-.24,0,height,co);
+ if(['apartment','townhall','school','hospital','hotel','police','fire','post','cafe','shop','bakery','workshop','warehouse'].includes(t)){const rw=Math.max(.12,(w-.4)/Math.min(4,Math.max(2,Math.floor(w*2))));const cols=Math.min(4,Math.max(2,Math.floor(w*2)));for(let i=0;i<cols;i++){const xx=x+.23+i*(w-.48)/cols;for(let zz=9;zz<height-5;zz+=10){box(c,xx,y+.08,.11,.055,zz,zz+4,t==='hospital'?'#bfeef5':t==='police'?'#bddfff':'#a8e3f4')}}const dr=P(x+w*.5,y+h-.13,7);box(c,x+w*.5-.10,y+h-.2,.2,.18,0,14,'#71482e')}
+ if(t==='apartment'||t==='hotel'||t==='school'||t==='hospital'||t==='townhall'||t==='fire'||t==='police'||t==='warehouse'||t==='post'||t==='cafe'||t==='shop'||t==='bakery'||t==='workshop'){roof(c,x+.08,y+.08,w-.16,h-.16,height,Math.max(7,12-(Math.max(w,h)-1)*2),t==='hospital'?'#dcebee':t==='police'?'#3f74c9':t==='fire'?'#d64a36':t==='school'?'#ce9b3e':t==='townhall'?'#b04f37':t==='hotel'?'#ca6d73':t==='cafe'?'#d95b38':t==='shop'?'#347eb4':t==='warehouse'?'#8c6b47':co)}
+ if(t==='farm'){for(let i=0;i<5;i++){const p=P(x+.22+i*.18,y+h-.25,3);c.strokeStyle=i%2?'#c39c34':'#5fa53d';c.lineWidth=2;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(p[0]+Math.sin(time*2+i)*2,p[1]-8);c.stroke()}}
+ if(t==='garden'){DE.tree(c,{x:x+w*.5,y:y+h*.5,s:.25,ph:time},time)}
+ if(t==='apartment'||t==='townhall'||t==='school'||t==='hospital'){const p=P(x+w*.5,y+h*.5,height+7);circ(c,p[0],p[1],4,'#f9edb4','#997c3b')}
+}
+function diamond(c,x,y,w,h,f,s){poly(c,[P(x,y),P(x+w,y),P(x+w,y+h),P(x,y+h)],f,s)}
+
+/* ===== апдейт, производство, деревья, миниатюрные частицы ===== */
+let smk=0,miniElapsed=0;
+function update(dt){if(!settings.animations)dt=Math.min(dt,.05);for(const b of S.b)for(const k in B[b.t].p){const factor=workerFactor()*(.55+happiness()/220);S.acc[k]=(S.acc[k]||0)+B[b.t].p[k]*(1+(b.lv-1)*.45)*factor*dt}
+ let changed=false;for(const k in S.acc)if(S.acc[k]>=1){const n=Math.floor(S.acc[k]);S.acc[k]-=n;S.res[k]=(S.res[k]||0)+n;changed=true}if(changed)upd();
+ for(const e of env){const solid=e.k==='tree'||e.k==='pine'||e.k==='rock',j=Math.floor(e.y),i=Math.floor(e.x);if(e.cool>0){e.cool=Math.max(0,e.cool-dt);if(e.cool===0&&solid&&occ[j]&&occ[j][i]===0&&land[j][i]===1)occ[j][i]=1}else if(solid&&occ[j]&&occ[j][i]===0&&land[j][i]===1)occ[j][i]=1}
+ smk-=dt;if(smk<0){smk=.8;const hs=S.b.filter(b=>['house','cottage','apartment','tower','cafe','bakery'].includes(b.t));if(hs.length){const b=hs[Math.random()*hs.length|0],p=P(b.x+.3,b.y+.6,42+(b.lv-1)*5);parts.push({x:p[0],y:p[1],a:0})}}
+ for(let i=parts.length-1;i>=0;i--){const q=parts[i];q.a+=dt;if(q.dust){q.y-=4*dt}else{q.y-=12*dt;q.x+=4*dt}if(q.a>(q.dust?.7:3))parts.splice(i,1)}
+ if(settings.animations){for(const n of npcs){if(!free(Math.floor(n.x),Math.floor(n.y))){const f=freeCells();if(f.length){const q=f[Math.random()*f.length|0];n.x=n.tx=q[0]+.5;n.y=n.ty=q[1]+.5}continue}const dx=n.tx-n.x,dy=n.ty-n.y,d=Math.hypot(dx,dy);if(d<.05){n.w-=dt;if(n.w>0)continue;const fi=Math.floor(n.x),fj=Math.floor(n.y);for(let k=0;k<8;k++){const dr=k===0&&Math.random()<.6?n.d:[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]][Math.random()*8|0],i=fi+dr[0],j=fj+dr[1];if(free(i,j)&&(!dr[0]||!dr[1]||free(i,fj)&&free(fi,j))){n.tx=i+.5+(Math.random()-.5)*.3;n.ty=j+.5+(Math.random()-.5)*.3;n.d=dr;n.w=Math.random()*.8;break}}}else{const s=Math.min(1,n.sp*dt/d);n.x+=dx*s;n.y+=dy*s}}}
+ miniElapsed+=dt;if(miniElapsed>.2){miniElapsed=0;drawMini()}if(settings.water){} }
+function render(t){const z=cam.z*DPR;g.setTransform(1,0,0,1,0,0);g.fillStyle='#19b8cf';g.fillRect(0,0,cv.width,cv.height);g.setTransform(z,0,0,z,cv.width/2-cam.x*z,cv.height/2-cam.y*z);g.drawImage(seaL,TX0,TY0,WW,HH);
+ if(settings.water){g.strokeStyle='#fff';g.lineWidth=2;g.lineCap='round';for(const w of rip){g.globalAlpha=.12+.18*Math.sin(t*.8+w.ph);g.beginPath();g.ellipse(w.x+Math.sin(t*.25+w.ph)*6,w.y,w.r,w.r*.34,0,PI*1.05,PI*1.9);g.stroke()}g.globalAlpha=1}
+ g.drawImage(landL,TX0,TY0,WW,HH);if(settings.water){for(const s of segs){const k=.5+.5*Math.sin(t*.9+s[6]),o=.1+.22*k,a=P(s[0]+s[4]*o,s[1]+s[5]*o),b=P(s[2]+s[4]*o,s[3]+s[5]*o);g.globalAlpha=.4-.3*k;g.strokeStyle='#e7ffff';g.lineWidth=2.5;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}g.globalAlpha=1}
+ if(cur&&settings.grid){for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x]===1)diamond(g,x,y,1,1,'rgba(255,255,255,.025)','rgba(255,255,255,.19)')}
+ if(sel&&S.b.includes(sel))diamond(g,sel.x,sel.y,sel.w,sel.h,`rgba(255,255,255,${.17+.1*Math.sin(t*4)})`,'#fff');
+ if(cur){const fp=fpT(cur.t,cur.r);diamond(g,cur.x,cur.y,fp[0],fp[1],cur.err?'rgba(220,60,50,.48)':'rgba(70,200,80,.43)',cur.err?'#c0392b':'#2e9b3a')}
+ if(bulldoze&&areaStart&&areaEnd){const x=Math.min(areaStart[0],areaEnd[0]),y=Math.min(areaStart[1],areaEnd[1]),w=Math.abs(areaEnd[0]-areaStart[0])+1,h=Math.abs(areaEnd[1]-areaStart[1])+1;diamond(g,x,y,w,h,'rgba(232,57,43,.20)','#e64937');for(const b of regionBuildings())diamond(g,b.x,b.y,b.w,b.h,'rgba(255,40,40,.3)','#c72b25')}
+ const lst=[];for(const e of env)lst.push([e.x+e.y,0,e]);for(const b of S.b)if(!(cur&&cur.moveB===b))lst.push([b.x+b.y+b.w+b.h-1,1,b]);for(const n of npcs)lst.push([n.x+n.y+.1,2,n]);lst.sort((a,b)=>a[0]-b[0]);
+ for(const[,k,o]of lst){if(k===0){const ej=Math.floor(o.y),ei=Math.floor(o.x);if((occ[ej]&&occ[ej][ei]===2)||(o.cool>0&&o.k!=='waterfall'))continue;DE[o.k]?.(g,o,settings.animations?t:0)}else if(k===2)npc(g,o,settings.animations?t:0);else{const a=o.t0<0?1:Math.min(1,(t-o.t0)/.45);g.save();if(a<1){const p=P(o.x+o.w/2,o.y+o.h/2),e=1-Math.pow(1-a,3);g.translate(p[0],p[1]);g.scale(1,.6+.4*e+Math.sin(a*PI)*.1);g.translate(-p[0],-p[1])}drawStructure(g,o.x,o.y,o.w,o.h,o.t,t,o.s,o.lv);g.restore()}}
+ if(cur){const fp=fpT(cur.t,cur.r);g.save();g.globalAlpha=.62;drawStructure(g,cur.x,cur.y,fp[0],fp[1],cur.t,t,0,cur.moveB?cur.moveB.lv:1);g.restore()}
+ for(const q of parts){const k=q.a/(q.dust?.7:3);g.globalAlpha=(1-k)*(q.dust?.55:.5);circ(g,q.x,q.y,q.dust?3+k*7:3+q.a*4,q.dust?'#d9c08a':'#fff','rgba(0,0,0,0)')}g.globalAlpha=1;
+ const night=(Math.sin(t*.012-1)+1)/2;if(night>.83){g.setTransform(1,0,0,1,0,0);g.fillStyle=`rgba(14,38,78,${(night-.83)*.32})`;g.fillRect(0,0,cv.width,cv.height);g.setTransform(z,0,0,z,cv.width/2-cam.x*z,cv.height/2-cam.y*z)}
+}
+let last=0;function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;tNow=ts/1000;update(dt);render(settings.animations?tNow:0);if(tg){const s=!!(cur||pmode||bulldoze);if(s!==tgB){tgB=s;try{s?tg.BackButton.show():tg.BackButton.hide()}catch(e){}}}requestAnimationFrame(loop)}
+function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(2,devicePixelRatio||1);cv.width=Math.floor(W*DPR);cv.height=Math.floor(H*DPR);if(cam)clampCam();drawMini()}
+addEventListener('resize',resize);addEventListener('pagehide',()=>save());document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});setInterval(()=>save(),20000);
+function hap(t){if(!settings.vibration)return;try{if(tg&&tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);else if(navigator.vibrate)navigator.vibrate(t==='error'?45:18)}catch(e){}}
+const tg=(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.platform!=='unknown')?Telegram.WebApp:null;let tgB=false;
+if(tg){try{tg.ready();tg.expand();if(tg.isVersionAtLeast('7.7'))tg.disableVerticalSwipes();if(tg.isVersionAtLeast('6.1')){tg.setHeaderColor('#19b8cf');tg.setBackgroundColor('#19b8cf')}tg.BackButton.onClick(()=>{if(cur)cancel(true);else if(bulldoze){bulldoze=false;areaStart=areaEnd=null}else closeP()})}catch(e){}}
+/* Start in the city centre; all visuals are canvas primitives. */
+resize();cam.z=cl(W/1000,.72,1.4);genWorld();buildLayers();load();upd();drawMini();$('musicBtn').style.opacity=settings.musicOn?'1':'.45';$('soundBtn').style.opacity=settings.soundsOn?'1':'.45';document.addEventListener('pointerdown',()=>{ensureAudio()},{once:true,passive:true});
+requestAnimationFrame(loop);
+
+</script></body></html>
