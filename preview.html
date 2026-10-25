@@ -52,7 +52,7 @@ button{font:inherit;color:var(--ink);cursor:pointer;touch-action:manipulation}
 <div id="bar"><button class="btn" data-m="b">🏗️ Строительство</button><button class="btn" data-m="q">📜 Задания</button><button class="btn" data-m="r">🏆 Награды</button><button class="btn" data-m="d">🚜 Бульдозер</button></div>
 <script>
 /* ===== утилиты и изометрия: мир (x,y) → экран (x-y)*32, (x+y)*16; z — высота в пикселях ===== */
-const $=i=>document.getElementById(i),cv=$('c'),g=cv.getContext('2d'),N=40,CS=1.5,PI=Math.PI,KEY='tinyisland.v1';
+const $=i=>document.getElementById(i),cv=$('c'),g=cv.getContext('2d'),N=120,CS=1.5,PI=Math.PI,KEY='tinyisland.v1';
 const cl=(v,a,b)=>Math.max(a,Math.min(b,v)),iso=(x,y)=>[(x-y)*32,(x+y)*16],P=(x,y,z=0)=>{const a=iso(x,y);return[a[0],a[1]-z]};
 const rnd=s=>()=>{s|=0;s=s+1831565813|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const L=(a,b,k)=>[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k];
@@ -64,13 +64,29 @@ function circ(c,x,y,r,f,s='#1e4a24'){c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=
 function box(c,x,y,w,h,z0,z1,col){const C=P(x+w,y+h,z1);
  poly(c,[P(x,y+h,z0),P(x+w,y+h,z0),C,P(x,y+h,z1)],sh(col,-.08),'#0003');
  poly(c,[P(x+w,y+h,z0),P(x+w,y,z0),P(x+w,y,z1),C],sh(col,-.3),'#0003');
+ if(z0===0&&z1>=8){const zb=z1*.2,zm=z1*.42;
+  poly(c,[P(x,y+h,0),P(x+w,y+h,0),P(x+w,y+h,zb),P(x,y+h,zb)],'rgba(20,14,4,.16)');
+  poly(c,[P(x,y+h,zb),P(x+w,y+h,zb),P(x+w,y+h,zm),P(x,y+h,zm)],'rgba(20,14,4,.07)');
+  poly(c,[P(x+w,y+h,0),P(x+w,y,0),P(x+w,y,zb),P(x+w,y+h,zb)],'rgba(20,14,4,.16)');
+  poly(c,[P(x+w,y+h,zb),P(x+w,y,zb),P(x+w,y,zm),P(x+w,y+h,zm)],'rgba(20,14,4,.07)')}
  poly(c,[P(x,y,z1),P(x+w,y,z1),C,P(x,y+h,z1)],sh(col,.15),'#0002')}
+/* этап Д: фактура крыш — один шумовой холст 64x64 (пятна + дуги черепицы), паттерн кэшируется по контексту */
+let _roofCv=null,_rpC=null,_rp=null;
+function roofNoiseCv(){if(_roofCv)return _roofCv;const e=document.createElement('canvas');e.width=64;e.height=64;const c=e.getContext('2d');const R=rnd(77);
+ for(let i=0;i<130;i++){c.fillStyle=R()<.5?'rgba(0,0,0,.16)':'rgba(255,255,255,.13)';c.fillRect(R()*64,R()*64,1.6,1.6)}
+ c.strokeStyle='rgba(0,0,0,.13)';c.lineWidth=1;for(let j=0;j<4;j++){c.beginPath();c.arc(8+j*16,14+(j%2)*22,7,Math.PI*.15,Math.PI*.85);c.stroke()}
+ _roofCv=e;return e}
+function roofPat(c){try{if(_rpC===c&&_rp)return _rp;const p=c.createPattern(roofNoiseCv(),'repeat');_rpC=c;_rp=p;return p}catch(e){return null}}
 /* вальмовая крыша с рядами черепицы */
 function roof(c,x,y,w,h,z,r,col,e=.12){const ap=P(x+w/2,y+h/2,z+r),D=P(x-e,y+h+e,z),C=P(x+w+e,y+h+e,z),B=P(x+w+e,y-e,z);
  poly(c,[D,C,ap],sh(col,-.02),'#0004');poly(c,[C,B,ap],sh(col,-.26),'#0004');
+ const rp=roofPat(c);if(rp){c.save();c.globalAlpha=.15;poly(c,[D,C,ap],rp);poly(c,[C,B,ap],rp);c.restore()}
  c.strokeStyle='#0003';c.lineWidth=1;c.beginPath();for(let i=1;i<5;i++){const k=i/5,a=L(D,ap,k),b=L(C,ap,k),d=L(B,ap,k);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(d[0],d[1])}c.stroke()}
 function wq(c,x,y,w,h,s,u0,u1,z0,z1,col){const f=(u,z)=>s?P(x+w,y+h-u*h,z):P(x+u*w,y+h,z);poly(c,[f(u0,z0),f(u1,z0),f(u1,z1),f(u0,z1)],col,'#0005')}
 const shd=(c,x,y,w,h,l=.3)=>poly(c,[P(x,y+.15),P(x+w+l,y+.15),P(x+w+l,y+h+.1),P(x,y+h+.1)],'rgba(45,35,10,.17)');
+/* этап Д: мягкая контактная тень — один предрендеренный спрайт с радиальным градиентом на все здания */
+let _shSpr=null;
+function shadowSpr(){if(_shSpr)return _shSpr;const e=document.createElement('canvas');e.width=128;e.height=64;const c=e.getContext('2d');c.translate(64,32);c.scale(1,.5);const gr=c.createRadialGradient(0,0,2,0,0,58);gr.addColorStop(0,'rgba(26,34,12,.52)');gr.addColorStop(.55,'rgba(26,34,12,.26)');gr.addColorStop(1,'rgba(26,34,12,0)');c.fillStyle=gr;c.beginPath();c.arc(0,0,60,0,7);c.fill();_shSpr=e;return e}
 
 /* ===== этап В: детализация — окна с рамами, двери, вывески, цоколь ===== */
 const faceP=(x,y,w,h,s,u,z)=>s?P(x+w,y+h-u*h,z):P(x+u*w,y+h,z);
@@ -136,7 +152,7 @@ const B={
  garden:{n:'Сад',g:'Производство',w:2,h:2,rot:1,c:{coins:130,wood:10,food:5},p:{food:.6},happy:.8,ps:.8,col:'#58a75a'},
  church:{n:'Церковь',g:'Госструктуры',w:2,h:2,c:{coins:350,wood:30,stone:30},p:{coins:1},happy:1.4,ps:.68,col:'#3f74c9'}
 };
-const START=[['house',15,16],['house',17,15],['house',19,14],['church',19,18],['market',23,19],['farm',14,21],['sawmill',17,22],['well',21,23],['lighthouse',23,14],['dock',7,22],['bridge',15,13],['tower',25,14],['tower',27,16],['apartment',25,18],['townhall',22,17],['cafe',21,16],['road',14,15],['road',15,15],['road',18,14],['road',20,14],['road',21,15],['road',22,15],['road',22,16],['road',24,17],['road',15,17],['road',15,18],['road',16,18],['road',17,18],['road',17,17],['road',20,15],['road',24,18],['road',21,21],['road',22,21],['road',23,21],['road',20,22],['road',21,22]];
+const START=[['house',55,56],['house',57,55],['house',59,54],['church',59,58],['market',63,59],['farm',54,61],['sawmill',57,62],['well',61,63],['lighthouse',63,54],['dock',47,62],['bridge',55,53],['tower',65,54],['tower',67,56],['apartment',65,58],['townhall',62,57],['cafe',61,56],['road',54,55],['road',55,55],['road',58,54],['road',60,54],['road',61,55],['road',62,55],['road',62,56],['road',64,57],['road',55,57],['road',55,58],['road',56,58],['road',57,58],['road',57,57],['road',60,55],['road',64,58],['road',61,61],['road',62,61],['road',63,61],['road',60,62],['road',61,62]];
 const fpT=(t,r)=>r&&B[t].w!==B[t].h?[B[t].h,B[t].w]:[B[t].w,B[t].h];
 const prodT=p=>Object.keys(p).map(k=>'+'+(+p[k].toFixed(1))+' '+RN[k]).join(', ');
 
@@ -384,17 +400,17 @@ beehive(c,x,y,w,h,t,s){shd(c,x,y,w,h,.2);tileBase(c,x,y,w,h,'#89b45b');
 
 /* ===== окружение ===== */
 const DE={
-tree(c,e,t){const[p,q]=P(e.x,e.y),s=e.s,w=Math.sin(t*1.5+e.ph)*1.6;ell(c,p+12*s,q+2,20*s,7*s,'rgba(45,35,10,.17)');c.fillStyle='#7a4f2a';c.fillRect(p-3*s,q-18*s,6*s,18*s);c.fillStyle='#96683c';c.fillRect(p-3*s,q-18*s,2.6*s,18*s);
+tree(c,e,t){const[p,q]=P(e.x,e.y),s=e.s,w=Math.sin(t*1.5+e.ph)*1.6;ell(c,p+13*s,q+3,23*s,8*s,'rgba(45,35,10,.10)');ell(c,p+11*s,q+2,17*s,6*s,'rgba(45,35,10,.18)');ell(c,p,q+1,13*s,4.6*s,'rgba(18,38,12,.30)');c.fillStyle='#7a4f2a';c.fillRect(p-3*s,q-18*s,6*s,18*s);c.fillStyle='#96683c';c.fillRect(p-3*s,q-18*s,2.6*s,18*s);
  circ(c,p-11*s,q-23*s,11*s,'#256b2a');circ(c,p+11*s,q-24*s,10*s,'#256b2a');
  circ(c,p-9*s+w*.4,q-27*s,12*s,'#2f7d32');circ(c,p+9*s+w*.4,q-28*s,11*s,'#2f7d32');circ(c,p+w,q-38*s,14*s,'#3f9a3a');circ(c,p-4*s+w,q-43*s,8*s,'#4cab44');circ(c,p-6*s+w,q-46*s,4.5*s,'#7cc95e');circ(c,p+6*s+w,q-41*s,3.4*s,'#8fd470')},
-pine(c,e,t){const[p,q]=P(e.x,e.y),s=e.s,w=Math.sin(t*1.4+e.ph)*1.2;ell(c,p+12*s,q+2,18*s,6*s,'rgba(45,35,10,.17)');c.fillStyle='#6b4423';c.fillRect(p-3*s,q-12*s,6*s,12*s);
+pine(c,e,t){const[p,q]=P(e.x,e.y),s=e.s,w=Math.sin(t*1.4+e.ph)*1.2;ell(c,p+13*s,q+3,21*s,7*s,'rgba(45,35,10,.10)');ell(c,p+11*s,q+2,16*s,5.5*s,'rgba(45,35,10,.18)');ell(c,p,q+1,11*s,4*s,'rgba(18,38,12,.30)');c.fillStyle='#6b4423';c.fillRect(p-3*s,q-12*s,6*s,12*s);
  for(let i=0;i<4;i++){const y0=q-8*s-i*13*s,wd=(22-i*4.5)*s,o=w*i*.25;poly(c,[[p-wd+o,y0],[p+wd+o,y0],[p+o+w*.3,y0-22*s]],i%2?'#2f6f3a':'#3a8044','#173b20');poly(c,[[p-wd*.5+o,y0-2*s],[p+o,y0-2*s],[p+o+w*.3,y0-19*s]],'rgba(140,220,140,.30)')}},
 rock(c,e){const[p,q]=P(e.x,e.y),s=e.s*.9;ell(c,p+8*s,q+2,18*s,6*s,'rgba(45,35,10,.2)');
  const pt=[[-15,0],[-12,-11],[-3,-19],[9,-15],[15,-5],[13,0]].map(a=>[p+a[0]*s,q+a[1]*s]),m=[p-s,q-6*s];
  poly(c,pt,'#8e8c92','#3d3c40');poly(c,[pt[0],pt[1],pt[2],m],'#b6b4ba');poly(c,[pt[2],pt[3],pt[4],m],'#a09ea4');
  poly(c,[[p-6*s,q-13*s],[p-2*s,q-17*s],[p+1*s,q-12*s]],'rgba(255,255,255,.5)');
  c.strokeStyle='#4a494e';c.lineWidth=1;c.beginPath();c.moveTo(m[0],m[1]);c.lineTo(p+4*s,q-1);c.moveTo(m[0],m[1]);c.lineTo(p-6*s,q-2);c.moveTo(p+2*s,q-13*s);c.lineTo(p+5*s,q-6*s);c.stroke()},
-bush(c,e){const[p,q]=P(e.x,e.y),s=e.s;circ(c,p-5*s,q-5*s,6*s,'#3f9a3a');circ(c,p+5*s,q-5*s,6*s,'#4aa843');circ(c,p,q-9*s,6*s,'#58b94a');circ(c,p-2*s,q-11*s,3*s,'#79cc66');c.fillStyle=e.ph>3?'#f4d03f':'#f08aa8';for(let i=0;i<5;i++){c.beginPath();c.arc(p-6*s+i*3.2*s,q-10*s+(i%2)*3.4*s,1.7,0,7);c.fill()}}};
+bush(c,e){const[p,q]=P(e.x,e.y),s=e.s;ell(c,p,q+1,9*s,3.2*s,'rgba(18,38,12,.25)');circ(c,p-5*s,q-5*s,6*s,'#3f9a3a');circ(c,p+5*s,q-5*s,6*s,'#4aa843');circ(c,p,q-9*s,6*s,'#58b94a');circ(c,p-2*s,q-11*s,3*s,'#79cc66');c.fillStyle=e.ph>3?'#f4d03f':'#f08aa8';for(let i=0;i<5;i++){c.beginPath();c.arc(p-6*s+i*3.2*s,q-10*s+(i%2)*3.4*s,1.7,0,7);c.fill()}}};
 function npc(c,n,t){const[p,q]=P(n.x,n.y),w=Math.sin(t*9+n.ph)*2.2;ell(c,p+2,q,5,2.2,'rgba(40,30,10,.22)');
  c.strokeStyle='#5a4630';c.lineWidth=2;c.beginPath();c.moveTo(p-1.5,q-5);c.lineTo(p-1.5+w,q);c.moveTo(p+1.5,q-5);c.lineTo(p+1.5-w,q);c.stroke();
  c.fillStyle=n.c;c.fillRect(p-3.5,q-12,7,8);circ(c,p,q-15,3.6,'#f3c9a0','#0003');
@@ -405,7 +421,7 @@ const land=[],occ=[],env=[],segs=[],rip=[],npcs=[],parts=[],WW=N*64+240,HH=N*32+
 let S,cam={x:0,y:N*16,z:1},W=innerWidth,H=innerHeight,DPR=1,seaL,landL,cur=null,sel=null,tNow=0;
 let bulldoze=false,areaStart=null,areaEnd=null,areaDrag=false,areaTargets=[],buildCat='Все',miniClock=0,saveMessage='';
 const SETKEY='tinyisland.settings.v1';
-const RIVER_CELLS=new Set(['13,11','13,12','14,12','15,13','15,14','16,15','16,16','17,16']);
+const RIVER_CELLS=new Set(['53,51','53,52','54,52','55,53','55,54','56,55','56,56','57,56']);
 const isRiver=(x,y)=>RIVER_CELLS.has(x+','+y);
 const DEFAULT_SETTINGS={musicOn:true,musicVolume:.32,soundsOn:true,soundVolume:.55,vibration:true,grid:true,confirmDemolish:true,animations:true,water:true,autoSave:true,lastSaved:'',saveSize:0};
 function readSettings(){try{const o=JSON.parse(localStorage.getItem(SETKEY)||'null');return o&&typeof o==='object'?{...DEFAULT_SETTINGS,...o}: {...DEFAULT_SETTINGS}}catch(e){return {...DEFAULT_SETTINGS}}}
@@ -427,34 +443,51 @@ function sfx(type){if(!settings.soundsOn)return;ensureAudio();const C={click:[62
 function genWorld(){const R=rnd(7),ph=[R()*6,R()*6,R()*6];
  for(let y=0;y<N;y++){land[y]=[];occ[y]=[];for(let x=0;x<N;x++){const dx=(x+.5-N/2)/(N/2),dy=(y+.5-N/2)/(N/2),a=Math.atan2(dy,dx);const d=Math.max(Math.abs(dx),Math.abs(dy))*.6+Math.hypot(dx,dy)*.5+Math.sin(a*3+ph[0])*.05+Math.sin(a*5+ph[1])*.035+Math.sin(a*2+ph[2])*.05;land[y][x]=d<.68?1:0;occ[y][x]=0}}
  /* Острова: диск радиуса r, обрезанный полем расстояний до существующей суши (между сушами всегда >=3 клеток, т.е. >=2 клетки воды) и отступом >=2 от края карты; клетки сначала собираются, потом применяются разом. */
- const landDist=(x,y)=>{let m=1e9;for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(land[j][i]){const d=Math.hypot(i-x,j-y);if(d<m)m=d}return m};
- const isl=(cx,cy,r,v,ov)=>{const cells=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){if(land[y][x]||Math.hypot(x-cx,y-cy)>=r)continue;if(x<2||y<2||x>N-3||y>N-3)continue;if(landDist(x,y)<3)continue;cells.push([x,y])}for(const q of cells){land[q[1]][q[0]]=v;occ[q[1]][q[0]]=ov}};
- isl(5.5,5.5,6,1,0);isl(34.5,34.5,6,1,0);isl(4.5,19.5,3,2,3);isl(20,36,1.7,1,3);isl(36,12,1.5,1,3);
+ const landDist=(x,y)=>{let m=9;for(let j=Math.max(0,y-9);j<=Math.min(N-1,y+9);j++)for(let i=Math.max(0,x-9);i<=Math.min(N-1,x+9);i++)if(land[j][i]){const d=Math.hypot(i-x,j-y);if(d<m)m=d}return m};
+ const isl=(cx,cy,r,v,ov)=>{const cells=[];const x0=Math.max(2,Math.floor(cx-r)),x1=Math.min(N-3,Math.ceil(cx+r)),y0=Math.max(2,Math.floor(cy-r)),y1=Math.min(N-3,Math.ceil(cy+r));for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){if(land[y][x]||Math.hypot(x-cx,y-cy)>=r)continue;if(landDist(x,y)<3)continue;cells.push([x,y])}for(const q of cells){land[q[1]][q[0]]=v;occ[q[1]][q[0]]=ov}};
+ isl(13,13,16,1,0);isl(107,107,16,1,0);isl(97,19,9,2,3);isl(26,100,3.5,1,3);isl(15,60,3,1,3);isl(60,8,4,1,3);
  let rx=0;const dRow=START.find(s=>s[0]==='dock')[2];for(let x=0;x<N;x++)if(land[dRow][x]===1&&!occ[dRow][x])rx=x;START.find(s=>s[0]==='dock')[1]=Math.min(N-3,rx+1);
  const reserved=new Set();START.forEach(([t,x,y])=>{const d=B[t];for(let j=y-1;j<y+d.h+1;j++)for(let i=x-1;i<x+d.w+1;i++)reserved.add(i+','+j)});
  const E=rnd(11);for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x]===1&&!occ[y][x]&&!reserved.has(x+','+y)&&!isRiver(x,y)){const r=E(),k=r<.12?'tree':r<.20?'pine':r<.24?'rock':r<.34?'bush':0;if(k){env.push({k,x:x+.5,y:y+.5,s:.85+E()*.35,ph:E()*6,cool:0});if(k!=='bush')occ[y][x]=1}}
- [[2.8,18.2],[3.6,19.4],[2.9,20.6],[3.7,21.8]].forEach(([x,y],i)=>env.push({k:'rock',x,y,s:1+i%2*.4,ph:i,cool:0}));
- env.push({k:'tree',x:19.6,y:35.5,s:1.1,ph:1,cool:0},{k:'tree',x:20.6,y:36.4,s:1,ph:2,cool:0},{k:'bush',x:20,y:36.8,s:1,ph:4,cool:0},{k:'waterfall',x:13.2,y:11.4,s:1,ph:0,cool:0});
+ [[95.3,17.7],[96.1,18.9],[95.4,20.1],[96.2,21.3]].forEach(([x,y],i)=>env.push({k:'rock',x,y,s:1+i%2*.4,ph:i,cool:0}));
+ env.push({k:'tree',x:25.6,y:99.5,s:1.1,ph:1,cool:0},{k:'tree',x:26.6,y:100.4,s:1,ph:2,cool:0},{k:'bush',x:26,y:100.8,s:1,ph:4,cool:0},{k:'waterfall',x:53.2,y:51.4,s:1,ph:0,cool:0});
  for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x])for(const[dx,dy,x1,y1,x2,y2]of[[-1,0,0,0,0,1],[1,0,1,0,1,1],[0,-1,0,0,1,0],[0,1,0,1,1,1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=N||ny>=N||!land[ny][nx])segs.push([x+x1,y+y1,x+x2,y+y2,dx,dy,(x*7+y*3)%9])}
  const R2=rnd(9);for(let i=0;i<110;i++)rip.push({x:TX0+R2()*WW,y:TY0+R2()*HH,r:5+R2()*15,ph:R2()*6});
+ /* этап Д: блики у берегов — по сегментам пены, со стороны воды */
+ const R4=rnd(21);for(const s of segs){if(R4()<.3){const mx=(s[0]+s[2])/2+s[4]*.42,my=(s[1]+s[3])/2+s[5]*.42,pp=P(mx,my);rip.push({x:pp[0],y:pp[1],r:3+R4()*7,ph:R4()*6,shore:1})}}
  const R3=rnd(3),cols=['#f08aa8','#5aa0e0','#e8a23a','#6cbf6c','#b07ad8','#e86a5a','#4ab8a8','#d8d050'];const fc=[];for(let j=1;j<N-1;j++)for(let i=1;i<N-1;i++)if(land[j][i]===1&&!occ[j][i])fc.push([i,j]);for(let i=0;i<8;i++){const f=fc[(R3()*fc.length)|0]||[12,12];npcs.push({x:f[0]+.5,y:f[1]+.5,tx:f[0]+.5,ty:f[1]+.5,sp:.45+R3()*.45,w:R3(),ph:R3()*6,c:cols[i],k:i%3,h:['','#c0392b','#2c7a7b'][i%3]||'#8e44ad',d:[1,0]})}}
-function layer(w,h,s,f){const e=document.createElement('canvas');e.width=w*s;e.height=h*s;const c=e.getContext('2d');c.setTransform(s,0,0,s,-TX0*s,-TY0*s);f(c);return e}
-function buildLayers(){const R=rnd(3);
- /* море: глубинные пятна, блики-«волны» штрихами и искры */
- seaL=layer(WW,HH,.5,c=>{c.fillStyle='#18b8cf';c.fillRect(TX0,TY0,WW,HH);
- for(let i=0;i<26;i++){const rx=60+R()*170;ell(c,TX0+R()*WW,TY0+R()*HH,rx,rx*.34,'rgba(0,80,140,.08)')}
- for(let i=0;i<180;i++){const rx=18+R()*100;ell(c,TX0+R()*WW,TY0+R()*HH,rx,rx*.36,R()<.5?'rgba(0,110,170,.09)':'rgba(130,255,240,.13)')}
+function layerAt(ox,oy,w,h,s,f){const e=document.createElement('canvas');e.width=Math.round(w*s);e.height=Math.round(h*s);const c=e.getContext('2d');c.setTransform(s,0,0,s,-ox*s,-oy*s);f(c);return e}
+/* ===== слои мира - ЧАНКИ (этап Г) =====
+   При N=120 единый холст суши был бы ~11900x6100 px - iOS такой canvas не даст (лимит ~16,7 Мпикс).
+   Суша режется на чанки 24x24 клетки: bbox чанка в мировых px 1536x768 плюс поля 40 px
+   (свечение берега, юбка скал, толщина линий), масштаб 1.25 -> холст 2020x1060 px (<=2048 по стороне).
+   Чанк рисует свои клетки плюс кольцо соседних, холст лишнее обрежет, а соседний чанк нарисует
+   те же клетки у себя; в render() уходит только центральная (бесполeвая) часть каждого чанка,
+   поэтому швов и двойной альфы на стыках нет. Чанки, чьё расширенное кольцо пусто, не создаются.
+   Море - бесшовный тайл 1024x1024 мировых px (холст 512x512): render() заполняет им вьюпорт. */
+const CH=24,CHM=40,CHS=1.25,SEAT=1024;
+let landChunks=[],chunkDraws=0;
+const chunkRect=(ci,cj)=>{const cx=(CH*(ci-cj)-CH)*32,cy=CH*(ci+cj)*16;return{x:cx-CHM,y:cy-CHM,w:CH*64+CHM*2,h:CH*32+CHM*2,cx,cy}};
+function buildSeaTile(){const R=rnd(5);seaL=layerAt(0,0,SEAT,SEAT,.5,c=>{
+ const W9=f=>{for(const ox of[-SEAT,0,SEAT])for(const oy of[-SEAT,0,SEAT])f(ox,oy)};
+ c.fillStyle='#18b8cf';c.fillRect(0,0,SEAT,SEAT);
+ for(let i=0;i<8;i++){const px=R()*SEAT,py=R()*SEAT,rx=60+R()*170;W9((ox,oy)=>ell(c,px+ox,py+oy,rx,rx*.34,'rgba(0,80,140,.08)'))}
+ for(let i=0;i<56;i++){const px=R()*SEAT,py=R()*SEAT,rx=18+R()*100,col=R()<.5?'rgba(0,110,170,.09)':'rgba(130,255,240,.13)';W9((ox,oy)=>ell(c,px+ox,py+oy,rx,rx*.36,col))}
  c.strokeStyle='rgba(255,255,255,.20)';c.lineWidth=1.6;c.lineCap='round';
- for(let i=0;i<130;i++){const px=TX0+R()*WW,py=TY0+R()*HH,l=5+R()*9;c.beginPath();c.moveTo(px,py);c.lineTo(px+l,py+1.5);c.stroke()}
- c.fillStyle='rgba(255,255,255,.28)';for(let i=0;i<240;i++){c.beginPath();c.arc(TX0+R()*WW,TY0+R()*HH,.8+R()*1.1,0,7);c.fill()}});
- landL=layer(WW,HH,CS,c=>{const dia=(x,y)=>[P(x,y),P(x+1,y),P(x+1,y+1),P(x,y+1)];
+ for(let i=0;i<42;i++){const px=R()*SEAT,py=R()*SEAT,l=5+R()*9;W9((ox,oy)=>{c.beginPath();c.moveTo(px+ox,py+oy);c.lineTo(px+l+ox,py+1.5+oy);c.stroke()})}
+ c.fillStyle='rgba(255,255,255,.28)';
+ for(let i=0;i<76;i++){const px=R()*SEAT,py=R()*SEAT,r=.8+R()*1.1;W9((ox,oy)=>{c.beginPath();c.arc(px+ox,py+oy,r,0,7);c.fill()})}})}
+function buildLandChunk(ci,cj){const rc=chunkRect(ci,cj),R=rnd(3000+ci*131+cj*17);
+ const segIn=s=>{const a=P(s[0],s[1]),b=P(s[2],s[3]);return Math.max(a[0],b[0])+7>=rc.x&&Math.min(a[0],b[0])-7<=rc.x+rc.w&&Math.max(a[1],b[1])+7>=rc.y&&Math.min(a[1],b[1])-7<=rc.y+rc.h};
+ return layerAt(rc.x,rc.y,rc.w,rc.h,CHS,c=>{const X0=ci*CH-1,X1=ci*CH+CH,Y0=cj*CH-1,Y1=cj*CH+CH;
+const dia=(x,y)=>[P(x,y),P(x+1,y),P(x+1,y+1),P(x,y+1)];
  const wat=(x,y)=>x<0||y<0||x>=N||y>=N||!land[y][x];
  const coast=(x,y)=>wat(x+1,y)||wat(x-1,y)||wat(x,y+1)||wat(x,y-1);
- c.save();c.shadowColor='rgba(175,255,245,.9)';c.shadowBlur=33*CS;for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x])poly(c,dia(x,y),'#f1d58f');c.restore();
+ c.save();c.shadowColor='rgba(175,255,245,.9)';c.shadowBlur=33*CS;for(let y=Y0;y<Y1;y++)for(let x=X0;x<X1;x++)if(x>=0&&y>=0&&x<N&&y<N&&land[y][x])poly(c,dia(x,y),'#f1d58f');c.restore();
  /* юбка-обрыв скалистого острова: тёмные ромбы, сдвинутые вниз экрана, под клетками у воды */
- for(let y=0;y<N;y++)for(let x=0;x<N;x++){if(land[y][x]!==2)continue;if(!(wat(x+1,y)||wat(x,y+1)||wat(x+1,y+1)))continue;
+ for(let y=Y0;y<Y1;y++)for(let x=X0;x<X1;x++){if(x<0||y<0||x>=N||y>=N||land[y][x]!==2)continue;if(!(wat(x+1,y)||wat(x,y+1)||wat(x+1,y+1)))continue;
   poly(c,[P(x+.3,y+.3),P(x+1.3,y+.3),P(x+1.3,y+1.3),P(x+.3,y+1.3)],'#4c4a4e');poly(c,[P(x+.15,y+.15),P(x+1.15,y+.15),P(x+1.15,y+1.15),P(x+.15,y+1.15)],'#5d5a5e')}
- for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=land[y][x];if(!v)continue;const r=R();
+ for(let y=Y0;y<Y1;y++)for(let x=X0;x<X1;x++){if(x<0||y<0||x>=N||y>=N)continue;const v=land[y][x];if(!v)continue;const r=R();
   if(v===2){const col=`rgb(${150-r*22|0},${143-r*22|0},${136-r*20|0})`;poly(c,dia(x,y),col,col);
    c.strokeStyle='rgba(255,255,255,.35)';c.lineWidth=1.2;c.beginPath();const p1=P(x+.2+R()*.3,y+.25),p2=P(x+.55+R()*.3,y+.5);c.moveTo(p1[0],p1[1]);c.lineTo(p2[0],p2[1]);c.stroke();
    c.strokeStyle='rgba(30,30,34,.3)';c.beginPath();const p3=P(x+.3,y+.6+R()*.25),p4=P(x+.7,y+.8);c.moveTo(p3[0],p3[1]);c.lineTo(p4[0],p4[1]);c.stroke();
@@ -477,11 +510,16 @@ function buildLayers(){const R=rnd(3);
   for(let i=0;i<5;i++){const px=x+.12+R()*.76,py=y+.12+R()*.76,p=P(px,py);c.strokeStyle=R()<.55?'rgba(52,110,38,.5)':'rgba(178,226,120,.55)';c.lineWidth=1.1;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(p[0]+(R()*3-1.5),p[1]-2-R()*2.2);c.stroke()}
   if(R()<.2){const p=P(x+R(),y+R());ell(c,p[0],p[1],2.4,1.3,'rgba(70,128,52,.5)')}}
  /* Узкая извилистая речка и водопад нарисованы вектором прямо на слое острова. */
- const river=[[13.2,11.4],[13.9,12.2],[14.7,12.9],[15.4,13.8],[15.8,14.8],[16.5,15.6],[17.0,16.4]];c.lineCap='round';c.lineJoin='round';c.beginPath();river.forEach((v,i)=>{const q=P(v[0],v[1]);if(!i)c.moveTo(q[0],q[1]);else c.lineTo(q[0],q[1])});c.strokeStyle='#087ca0';c.lineWidth=17;c.stroke();c.strokeStyle='#27c8e3';c.lineWidth=12;c.stroke();c.strokeStyle='rgba(228,255,255,.85)';c.lineWidth=2.4;c.stroke();
+ const river=[[53.2,51.4],[53.9,52.2],[54.7,52.9],[55.4,53.8],[55.8,54.8],[56.5,55.6],[57.0,56.4]];c.lineCap='round';c.lineJoin='round';c.beginPath();river.forEach((v,i)=>{const q=P(v[0],v[1]);if(!i)c.moveTo(q[0],q[1]);else c.lineTo(q[0],q[1])});c.strokeStyle='#087ca0';c.lineWidth=17;c.stroke();c.strokeStyle='#27c8e3';c.lineWidth=12;c.stroke();c.strokeStyle='rgba(228,255,255,.85)';c.lineWidth=2.4;c.stroke();
  /* берег: песчаная кромка, белая линия прибоя и пунктирная пена вдоль границы суши */
- for(const s of segs){const a=P(s[0],s[1]),b=P(s[2],s[3]);c.strokeStyle='#e2b86c';c.lineWidth=5;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke()}
- for(const s of segs){const a=P(s[0]+s[4]*.05,s[1]+s[5]*.05),b=P(s[2]+s[4]*.05,s[3]+s[5]*.05);c.strokeStyle='rgba(255,255,255,.88)';c.lineWidth=2.3;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();
-  for(let i=0;i<3;i++){const k=.18+i*.3+((s[6]+i*3)%5)*.03,p=L(a,b,k);ell(c,p[0]+s[4]*3,p[1]+s[5]*3,2.6,1.3,'rgba(255,255,255,.5)')}}})}
+ for(const s of segs){if(!segIn(s))continue;const a=P(s[0],s[1]),b=P(s[2],s[3]);c.strokeStyle='#e2b86c';c.lineWidth=5;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke()}
+ for(const s of segs){if(!segIn(s))continue;const a=P(s[0]+s[4]*.05,s[1]+s[5]*.05),b=P(s[2]+s[4]*.05,s[3]+s[5]*.05);c.strokeStyle='rgba(255,255,255,.88)';c.lineWidth=2.3;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();
+  for(let i=0;i<3;i++){const k=.18+i*.3+((s[6]+i*3)%5)*.03,p=L(a,b,k);ell(c,p[0]+s[4]*3,p[1]+s[5]*3,2.6,1.3,'rgba(255,255,255,.5')}}})}
+function buildLayers(){buildSeaTile();landChunks=[];const nc=Math.ceil(N/CH);
+ for(let cj=0;cj<nc;cj++)for(let ci=0;ci<nc;ci++){const X0=Math.max(0,ci*CH-1),X1=Math.min(N,ci*CH+CH),Y0=Math.max(0,cj*CH-1),Y1=Math.min(N,cj*CH+CH);let has=false;
+  for(let y=Y0;y<Y1&&!has;y++)for(let x=X0;x<X1;x++)if(land[y][x]||isRiver(x,y)){has=true;break}
+  if(has){const rc=chunkRect(ci,cj);landChunks.push({cv:buildLandChunk(ci,cj),x:rc.cx,y:rc.cy})}}
+ landL=landChunks}
 const free=(i,j)=>!!land[j]&&land[j][i]===1&&!occ[j][i];
 function freeCells(){const f=[];for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(free(i,j))f.push([i,j]);return f}
 DE.waterfall=function(c,e,t){const[p,q]=P(e.x,e.y),v=settings.animations?t:0;ell(c,p+2,q+5,28,9,'rgba(19,136,175,.42)');poly(c,[[p-9,q-14],[p+9,q-14],[p+7,q+19],[p-5,q+19]],'#31cce4','#e6ffff');for(let i=0;i<5;i++){const xx=p-6+i*3+Math.sin(v*3+i)*1.5;c.strokeStyle='rgba(240,255,255,.82)';c.lineWidth=1.5;c.beginPath();c.moveTo(xx,q-10);c.lineTo(xx+Math.sin(v*2+i)*2,q+16);c.stroke()}ell(c,p,q+19,23,7,'rgba(70,224,240,.78)');
@@ -497,16 +535,17 @@ function addB(t,x,y,r,t0,lv=1){const[w,h]=fpT(t,r),b={t,x,y,r,w,h,t0,s:(x*7+y*3)
 function mark(b,v){for(let j=b.y;j<b.y+b.h;j++)for(let i=b.x;i<b.x+b.w;i++)if(occ[j]&&occ[j][i]!==3)occ[j][i]=v}
 const baseResources=()=>({coins:1000,wood:100,stone:80,food:50,water:30,energy:20});
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function load(){let o=null;try{o=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}S={res:baseResources(),b:[],acc:{},q:[0,0,0,0,0],rewards:[],dailyDate:todayKey(),dailyTaps:0,dailyDone:false};for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(occ[j][i]===2)occ[j][i]=0;
- let list=START.map(v=>v.slice());if(o&&[1,2].includes(o.v)&&o.res&&Array.isArray(o.b)){for(const k of Object.keys(S.res))if(Number.isFinite(o.res[k])&&o.res[k]>=0)S.res[k]=Math.floor(o.res[k]);list=o.b;{const ow=Number.isFinite(o.wn)?o.wn:26;if(ow<N){const sh=Math.round((N-ow)/2);list=o.b.map(v=>Array.isArray(v)?[v[0],v[1]+sh,v[2]+sh,v[3],v[4]]:v)}}if(Array.isArray(o.q))S.q=S.q.map((_,i)=>o.q[i]?1:0);if(Array.isArray(o.rewards))S.rewards=o.rewards.filter(v=>typeof v==='string');S.dailyDate=typeof o.dailyDate==='string'?o.dailyDate:todayKey();S.dailyTaps=Number.isFinite(o.dailyTaps)?Math.max(0,o.dailyTaps):0;S.dailyDone=!!o.dailyDone}
+function load(){let o=null;try{o=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}S={res:baseResources(),b:[],acc:{},q:[0,0,0,0,0],rewards:[],dailyDate:todayKey(),dailyTaps:0,dailyDone:false,bonus:{last:'',streak:0},order:null,wx:{k:'sun',until:90},stats:{hw:0,hs:0,built:0,roads:0,up:0}};for(let j=0;j<N;j++)for(let i=0;i<N;i++)if(occ[j][i]===2)occ[j][i]=0;
+ let list=START.map(v=>v.slice());if(o&&[1,2].includes(o.v)&&o.res&&Array.isArray(o.b)){for(const k of Object.keys(S.res))if(Number.isFinite(o.res[k])&&o.res[k]>=0)S.res[k]=Math.floor(o.res[k]);list=o.b;{const ow=Number.isFinite(o.wn)?o.wn:26;if(ow<N){const sh=Math.round((N-ow)/2);list=o.b.map(v=>Array.isArray(v)?[v[0],v[1]+sh,v[2]+sh,v[3],v[4]]:v)}}if(Array.isArray(o.q))S.q=S.q.map((_,i)=>o.q[i]?1:0);if(Array.isArray(o.rewards))S.rewards=o.rewards.filter(v=>typeof v==='string');S.dailyDate=typeof o.dailyDate==='string'?o.dailyDate:todayKey();S.dailyTaps=Number.isFinite(o.dailyTaps)?Math.max(0,o.dailyTaps):0;S.dailyDone=!!o.dailyDone;if(o.bonus&&typeof o.bonus==='object'){S.bonus.last=typeof o.bonus.last==='string'?o.bonus.last:'';S.bonus.streak=Number.isFinite(o.bonus.streak)?Math.max(0,Math.floor(o.bonus.streak)):0}if(o.order&&typeof o.order==='object'&&Number.isFinite(o.order.ti)&&Number.isFinite(o.order.base))S.order={ti:Math.floor(o.order.ti),base:o.order.base,count:Number.isFinite(o.order.count)?Math.max(0,Math.floor(o.order.count)):0};if(o.wx&&typeof o.wx==='object'&&['sun','cloud','rain'].includes(o.wx.k))S.wx={k:o.wx.k,until:60+Math.random()*60};if(o.stats&&typeof o.stats==='object')for(const k of['hw','hs','built','roads','up'])S.stats[k]=Number.isFinite(o.stats[k])?Math.max(0,Math.floor(o.stats[k])):0}
  if(S.dailyDate!==todayKey()){S.dailyDate=todayKey();S.dailyTaps=0;S.dailyDone=false}
  if(o&&Array.isArray(o.nodes))for(let i=0;i<Math.min(env.length,o.nodes.length);i++){if(Number.isFinite(o.nodes[i]))env[i].cool=Math.max(0,o.nodes[i])}
  /* Если недавно собранный ресурсный узел находится под сохранённой постройкой, он не должен мешать восстановлению сейва. */
  for(const v of list){if(!Array.isArray(v))continue;const[t,x,y,r]=v;if(!B[t]||!Number.isInteger(x)||!Number.isInteger(y))continue;const[w,h]=fpT(t,r?1:0);for(const e of env){if(!['tree','pine','rock'].includes(e.k))continue;const ex=Math.floor(e.x),ey=Math.floor(e.y);if(ex>=x&&ex<x+w&&ey>=y&&ey<y+h){if(occ[ey]&&occ[ey][ex]===1)occ[ey][ex]=0;if(e.cool<=0)e.cool=3}}}
  for(const e of list){if(!Array.isArray(e))continue;const[t,x,y,r,lv]=e;if(!B[t]||!Number.isInteger(x)||!Number.isInteger(y))continue;const rr=r?1:0,[w,h]=fpT(t,rr);if(!canPlace(t,x,y,w,h))addB(t,x,y,rr,-99,lv||1)}
+ applyDailyBonus();ensureOrder();refreshRoadBonus();
 }
 function saveSettings(){try{localStorage.setItem(SETKEY,JSON.stringify(settings))}catch(e){}}
-function save(force=false){if(!S||(!force&&!settings.autoSave))return;try{const obj={v:2,wn:N,res:S.res,b:S.b.map(b=>[b.t,b.x,b.y,b.r,b.lv]),q:S.q,rewards:S.rewards,dailyDate:S.dailyDate,dailyTaps:S.dailyTaps,dailyDone:S.dailyDone,nodes:env.map(e=>Math.round((e.cool||0)*10)/10)};const data=JSON.stringify(obj);localStorage.setItem(KEY,data);settings.lastSaved=new Date().toISOString();settings.saveSize=new Blob([data]).size;saveSettings();saveMessage='Сохранено';}catch(e){saveMessage='Не удалось сохранить (хранилище недоступно)'}}
+function save(force=false){if(!S||(!force&&!settings.autoSave))return;try{const obj={v:2,wn:N,res:S.res,b:S.b.map(b=>[b.t,b.x,b.y,b.r,b.lv]),q:S.q,rewards:S.rewards,dailyDate:S.dailyDate,dailyTaps:S.dailyTaps,dailyDone:S.dailyDone,bonus:S.bonus,order:S.order,wx:{k:S.wx?S.wx.k:'sun'},stats:S.stats,nodes:env.map(e=>Math.round((e.cool||0)*10)/10)};const data=JSON.stringify(obj);localStorage.setItem(KEY,data);settings.lastSaved=new Date().toISOString();settings.saveSize=new Blob([data]).size;saveSettings();saveMessage='Сохранено';}catch(e){saveMessage='Не удалось сохранить (хранилище недоступно)'}}
 
 /* ===== интерфейс и игровой цикл ===== */
 const afford=c=>Object.keys(c).every(k=>(S.res[k]||0)>=c[k]);
@@ -516,11 +555,11 @@ function population(){return Math.floor(S.b.reduce((n,b)=>n+(B[b.t].pop||0)*(1+(
 function happiness(){return Math.round(cl(62+S.b.reduce((n,b)=>n+(B[b.t].happy||0)*(1+(b.lv-1)*.2),0)-S.b.length*.035,35,100))}
 function workers(){return {available:Math.floor(population()*.42),needed:S.b.reduce((n,b)=>n+(B[b.t].workers||0),0)}}
 function workerFactor(){const w=workers();return w.needed?cl(w.available/w.needed,.15,1):1}
-function production(){const p={};for(const b of S.b)for(const k in B[b.t].p)p[k]=(p[k]||0)+B[b.t].p[k]*(1+(b.lv-1)*.45);const f=workerFactor()*(.55+happiness()/220);for(const k in p)p[k]*=f;return p}
+function production(){const p={};for(const b of S.b)for(const k in B[b.t].p)p[k]=(p[k]||0)+B[b.t].p[k]*(1+(b.lv-1)*.45)*(b.road?1.1:1);const f=workerFactor()*(.55+happiness()/220);for(const k in p)p[k]*=f;if(S.wx&&S.wx.k==='rain'&&p.water)p.water*=1.5;return p}
 function townLevel(){const p=population(),n=S.b.length;if(p>=130||n>=40)return {name:'Порт',n:4};if(p>=60||n>=25)return {name:'Городок',n:3};if(p>=20||n>=15)return {name:'Посёлок',n:2};return {name:'Деревня',n:1}}
 let tt=0;function toast(m,bad=false){if(bad){sfx('error');hap('error')}const e=$('toast');e.textContent=m;e.className='pa on'+(bad?' bad':'');clearTimeout(tt);tt=setTimeout(()=>e.className='pa',2500)}
 $('res').innerHTML=Object.keys(RN).map(k=>`<div class="ch pa" title="${RN[k]}"><span class="ico">${RICON[k]}</span><span id="r_${k}">0</span></div>`).join('')+'<div class="ch pa" title="Жители"><span class="ico">👥</span><span id="r_pop">0</span></div>';
-function chips(){for(const k in RN){const e=$('r_'+k);if(e)e.textContent=Math.floor(S.res[k]||0)}$('r_pop').textContent=population();const l=townLevel();$('level').textContent=`${l.name} · Уровень ${l.n} · Счастье ${happiness()}%`}
+function chips(){for(const k in RN){const e=$('r_'+k);if(e)e.textContent=Math.floor(S.res[k]||0)}$('r_pop').textContent=population();const l=townLevel();$('level').textContent=`${l.name} · Уровень ${l.n} · Счастье ${happiness()}% · ${wxIco()}`}
 const Q=[
  {title:'Построить 5 домов',check:()=>cnt('house')>=5,reward:{coins:100}},
  {title:'Построить вторую ферму',check:()=>cnt('farm')>=2,reward:{wood:30}},
@@ -536,8 +575,8 @@ function closeP(){pn.classList.remove('on');pmode='';sel=null}
 function preview(k,t){const c=k.getContext('2d'),d=B[t],s=d.ps||Math.min(1.25,1.2/Math.max(d.w,d.h)),ic=iso(d.w/2,d.h/2);c.clearRect(0,0,k.width,k.height);c.setTransform(s,0,0,s,60-ic[0]*s,57-ic[1]*s);drawStructure(c,0,0,d.w,d.h,t,0,0,1);c.setTransform(1,0,0,1,0,0)}
 const cats=['Все','Жильё','Дороги и уют','Госструктуры','Бизнес','Производство','Энергия','Остров'];
 function showB(category=buildCat){buildCat=category;openP('b','Строительство',`<div id="cats">${cats.map(x=>`<button class="btn ${x===buildCat?'active':''}" data-cat="${x}">${x}</button>`).join('')}</div><div id="cards"></div><p class="muted">Выберите здание: призрак появится на карте. Перемещайте его пальцем, затем нажмите «Построить».</p>`);$('cats').querySelectorAll('[data-cat]').forEach(e=>e.onclick=()=>showB(e.dataset.cat));const cards=$('cards');for(const t of Object.keys(B)){const d=B[t];if(buildCat!=='Все'&&d.g!==buildCat)continue;const el=document.createElement('div');el.className='card'+(afford(d.c)?'':' no');const k=document.createElement('canvas');k.width=120;k.height=78;preview(k,t);el.append(k);el.insertAdjacentHTML('beforeend',`<b>${d.n}</b><small>${costH(d.c)}</small><small style="opacity:.78">${d.w}×${d.h} кл.${d.pop?` · 👥${d.pop}`:''}</small>`);el.onclick=()=>{sfx('click');startBuild(t)};cards.append(el)}}
-function showQ(){let html=Q.map((q,i)=>`<div class="row"><span>${S.q[i]?'✅ ':''}${q.title}</span><span>${S.q[i]?'готово':'награда: '+prodT(q.reward)}</span></div>`).join('');html+=`<div class="sectionTitle">Ежедневное задание</div><p>Соберите ресурсы с природы 5 раз — ${Math.min(S.dailyTaps,5)}/5.</p><p>${S.dailyDone?'✅ Награда уже получена.':S.dailyTaps>=5?'<button class="btn" id="dailyClaim">Забрать награду: 120 монет и 15 еды</button>':'Вознаграждение: 120 монет и 15 еды'}</p>`;openP('q','Задания',html);const b=$('dailyClaim');if(b)b.onclick=()=>{if(S.dailyTaps<5||S.dailyDone)return;S.res.coins+=120;S.res.food+=15;S.dailyDone=true;sfx('success');upd();save();showQ();toast('Ежедневная награда получена!')}}
-function showI(){const pr=production(),w=workers(),l=townLevel();openP('i','Остров и экономика',`<div class="row"><span>Статус поселения</span><b>${l.name} · ${l.n}</b></div><div class="row"><span>Жители</span><b>${population()}</b></div><div class="row"><span>Счастье жителей</span><b>${happiness()}%</b></div><div class="row"><span>Зданий</span><b>${S.b.length}</b></div><div class="row"><span>Рабочие</span><b>${w.available} свободно / ${w.needed} нужно</b></div><div class="row"><span>Производство</span><span>${Object.keys(pr).length?prodT(pr)+'/с':'—'}</span></div><div class="row"><span>Сохранение</span><span>${settings.lastSaved?new Date(settings.lastSaved).toLocaleString():'ещё не сохранялось'}</span></div>`)}
+function showQ(){let html=Q.map((q,i)=>`<div class="row"><span>${S.q[i]?'✅ ':''}${q.title}</span><span>${S.q[i]?'готово':'награда: '+prodT(q.reward)}</span></div>`).join('');html+=`<div class="sectionTitle">Ежедневное задание</div><p>Соберите ресурсы с природы 5 раз — ${Math.min(S.dailyTaps,5)}/5.</p><p>${S.dailyDone?'✅ Награда уже получена.':S.dailyTaps>=5?'<button class="btn" id="dailyClaim">Забрать награду: 120 монет и 15 еды</button>':'Вознаграждение: 120 монет и 15 еды'}</p>`;html+=orderHtml();openP('q','Задания',html);const b=$('dailyClaim');if(b)b.onclick=()=>{if(S.dailyTaps<5||S.dailyDone)return;S.res.coins+=120;S.res.food+=15;S.dailyDone=true;sfx('success');upd();save();showQ();toast('Ежедневная награда получена!')}}
+function showI(){const pr=production(),w=workers(),l=townLevel();openP('i','Остров и экономика',`<div class="row"><span>Статус поселения</span><b>${l.name} · ${l.n}</b></div><div class="row"><span>Жители</span><b>${population()}</b></div><div class="row"><span>Счастье жителей</span><b>${happiness()}%</b></div><div class="row"><span>Зданий</span><b>${S.b.length}</b></div><div class="row"><span>Рабочие</span><b>${w.available} свободно / ${w.needed} нужно</b></div><div class="row"><span>Производство</span><span>${Object.keys(pr).length?prodT(pr)+'/с':'—'}</span></div><div class="row"><span>Ежедневный бонус</span><b>день ${S.bonus?S.bonus.streak||0:0} · завтра +${100*Math.min(7,((S.bonus?S.bonus.streak:0)||0)+1)} монет</b></div><div class="row"><span>Погода</span><b>${wxName()}</b></div><div class="row"><span>Сохранение</span><span>${settings.lastSaved?new Date(settings.lastSaved).toLocaleString():'ещё не сохранялось'}</span></div>`)}
 const rewardList=[
  {id:'starter',n:'Маленький город',d:'Построить 15 зданий',ok:()=>S.b.length>=15,r:{coins:300,wood:25}},
  {id:'citizens',n:'Большая семья',d:'Население 50 жителей',ok:()=>population()>=50,r:{coins:250,energy:20}},
@@ -548,11 +587,11 @@ const rewardList=[
 function showRewards(){openP('r','Награды и достижения',rewardList.map(r=>{const claimed=S.rewards.includes(r.id),ready=r.ok();return `<div class="row"><span><b>${claimed?'✅ ':ready?'🌟 ':'🔒 '}${r.n}</b><br><span class="muted">${r.d} · ${prodT(r.r)}</span></span><span>${claimed?'получено':ready?`<button class="btn" data-reward="${r.id}">Забрать</button>`:'ещё не открыто'}</span></div>`}).join(''));$('pc').querySelectorAll('[data-reward]').forEach(e=>e.onclick=()=>{const r=rewardList.find(x=>x.id===e.dataset.reward);if(!r||S.rewards.includes(r.id)||!r.ok())return;for(const k in r.r)S.res[k]=(S.res[k]||0)+r.r[k];S.rewards.push(r.id);sfx('success');upd();save();showRewards();toast('Награда получена: '+prodT(r.r))})}
 function costForUpgrade(b,nextLevel=b.lv+1){const mul=nextLevel===2?1.25:1.8,o={};for(const k in B[b.t].c)o[k]=Math.ceil(B[b.t].c[k]*mul);return o}
 function totalCost(b){const o={...B[b.t].c};for(let lv=2;lv<=b.lv;lv++){const c=costForUpgrade(b,lv);for(const k in c)o[k]=(o[k]||0)+c[k]}return o}
-function removeB(b,withRefund=true){const d=B[b.t];if(withRefund){const c=totalCost(b);for(const k in c)S.res[k]=(S.res[k]||0)+Math.floor(c[k]/2)}mark(b,0);S.b.splice(S.b.indexOf(b),1);const p=P(b.x+b.w/2,b.y+b.h/2);for(let i=0;i<12;i++)parts.push({x:p[0]+(Math.random()-.5)*35,y:p[1]+(Math.random()-.5)*18,a:0,broken:1})}
+function removeB(b,withRefund=true){const d=B[b.t];if(withRefund){const c=totalCost(b);for(const k in c)S.res[k]=(S.res[k]||0)+Math.floor(c[k]/2)}mark(b,0);S.b.splice(S.b.indexOf(b),1);const p=P(b.x+b.w/2,b.y+b.h/2);for(let i=0;i<12;i++)parts.push({x:p[0]+(Math.random()-.5)*35,y:p[1]+(Math.random()-.5)*18,a:0,broken:1});refreshRoadBonus()}
 function demolishOne(b){if(settings.confirmDemolish){const refund={};const cost=totalCost(b);for(const k in cost)refund[k]=Math.floor(cost[k]/2);openP('confirm','Подтвердить снос',`<p>Снести «${B[b.t].n}»? Вернётся половина стоимости.</p><p><b>Возврат:</b> ${prodT(refund)||'без ресурсов'}</p><div class="actions"><button class="btn" id="yesDm">Снести</button><button class="btn" id="noDm">Оставить</button></div>`);$('yesDm').onclick=()=>{removeB(b,true);sfx('demolish');closeP();upd();save();toast('Здание снесено, половина стоимости возвращена')};$('noDm').onclick=closeP;return}removeB(b,true);sfx('demolish');closeP();upd();save();toast('Здание снесено')}
-function showSel(b){if(!S.b.includes(b))return;sel=b;const d=B[b.t],prod=Object.keys(d.p).length?prodT(d.p)+'/с':'не производит ресурсы',next=b.lv<3?costForUpgrade(b):null;openP('s',d.n,`<div class="row"><span>Размер</span><b>${b.w} × ${b.h} клетки</b></div><div class="row"><span>Уровень</span><b>${b.lv}/3</b></div><div class="row"><span>Эффект</span><span>${prod}${d.pop?` · +${Math.floor(d.pop*(1+(b.lv-1)*.35))} жителей`:''}${d.happy?` · счастье +${d.happy}`:''}</span></div>${next?`<p>Улучшение до уровня ${b.lv+1}: ${costH(next)}</p>`:'<p>Максимальный уровень улучшения.</p>'}<div class="actions"><button class="btn" id="moveB">↔ Переместить</button>${next?'<button class="btn" id="upgradeB">⬆ Улучшить</button>':''}<button class="btn" id="dm">🧱 Снести</button></div>`);$('moveB').onclick=()=>startMove(b);const u=$('upgradeB');if(u)u.onclick=()=>{const c=costForUpgrade(b);if(!afford(c)){toast('Не хватает ресурсов для улучшения',true);return}for(const k in c)S.res[k]-=c[k];b.lv++;sfx('success');upd();save();showSel(b);toast(`${d.n} улучшен до ${b.lv} уровня`)};$('dm').onclick=()=>demolishOne(b)}
+function showSel(b){if(!S.b.includes(b))return;refreshRoadBonus();sel=b;const d=B[b.t],prod=Object.keys(d.p).length?prodT(d.p)+'/с':'не производит ресурсы',next=b.lv<3?costForUpgrade(b):null;openP('s',d.n,`<div class="row"><span>Размер</span><b>${b.w} × ${b.h} клетки</b></div><div class="row"><span>Уровень</span><b>${b.lv}/3</b></div><div class="row"><span>Эффект</span><span>${prod}${d.pop?` · +${Math.floor(d.pop*(1+(b.lv-1)*.35))} жителей`:''}${d.happy?` · счастье +${d.happy}`:''}</span></div>${b.road?'<div class="row"><span>🚗 У дороги</span><b>производство +10%</b></div>':''}${next?`<p>Улучшение до уровня ${b.lv+1}: ${costH(next)}</p>`:'<p>Максимальный уровень улучшения.</p>'}<div class="actions"><button class="btn" id="moveB">↔ Переместить</button>${next?'<button class="btn" id="upgradeB">⬆ Улучшить</button>':''}<button class="btn" id="dm">🧱 Снести</button></div>`);$('moveB').onclick=()=>startMove(b);const u=$('upgradeB');if(u)u.onclick=()=>{const c=costForUpgrade(b);if(!afford(c)){toast('Не хватает ресурсов для улучшения',true);return}for(const k in c)S.res[k]-=c[k];b.lv++;{const st=S.stats||(S.stats={hw:0,hs:0,built:0,roads:0,up:0});st.up++}sfx('success');upd();save();showSel(b);toast(`${d.n} улучшен до ${b.lv} уровня`)};$('dm').onclick=()=>demolishOne(b)}
 
-document.querySelectorAll('#bar button').forEach(b=>b.onclick=()=>{ensureAudio();sfx('click');const m=b.dataset.m;if(cur)cancel(false);if(bulldoze){bulldoze=false;areaStart=areaEnd=null;areaTargets=[]}if(pmode===m){closeP();return}if(m==='b')showB();else if(m==='q')showQ();else if(m==='r')showRewards();else if(m==='d'){closeP();bulldoze=true;areaStart=areaEnd=null;toast('Бульдозер: проведите по диагонали участка') }});
+document.querySelectorAll('#bar button').forEach(b=>b.onclick=()=>{ensureAudio();sfx('click');const m=b.dataset.m;if(cur)cancel(false);if(bulldoze){bulldoze=false;areaStart=areaEnd=null;areaTargets=[];areaNature=[]}if(pmode===m){closeP();return}if(m==='b')showB();else if(m==='q')showQ();else if(m==='r')showRewards();else if(m==='d'){closeP();bulldoze=true;areaStart=areaEnd=null;toast('Бульдозер: проведите по диагонали участка') }});
 $('pcl').onclick=()=>{sfx('click');closeP()};
 
 /* ===== размещение и переезд: камера полностью заблокирована до подтверждения ===== */
@@ -563,8 +602,8 @@ function startBuild(t){closeP();bulldoze=false;areaStart=areaEnd=null;const c=ce
 function startMove(b){closeP();if(!S.b.includes(b))return;mark(b,0);cur={t:b.t,r:b.r,moveB:b,old:{x:b.x,y:b.y,r:b.r,w:b.w,h:b.h}};setCur(b.x+(b.w>>1),b.y+(b.h>>1));showGhostUI();toast('Выберите новое место и подтвердите переезд')}
 function cancel(returnToPanel=false){const wasBuild=!!cur&&!cur.moveB;const moving=!!(cur&&cur.moveB);const moved=moving?cur.moveB:null;if(moving){const b=cur.moveB;b.x=cur.old.x;b.y=cur.old.y;b.r=cur.old.r;b.w=cur.old.w;b.h=cur.old.h;mark(b,2)}cur=null;$('bm').classList.remove('on');cv.style.cursor=bulldoze?'crosshair':'grab';if(returnToPanel){if(moved&&S.b.includes(moved))showSel(moved);else if(wasBuild)showB(buildCat)}}
 function rotate(){if(cur){cur.r^=1;setCur(cur.cx,cur.cy);sfx('click')}}
-function place(){if(!cur)return;if(cur.err){toast(cur.err,true);return}const d=B[cur.t];if(cur.moveB){const b=cur.moveB;b.x=cur.x;b.y=cur.y;b.r=cur.r;b.w=cur.w;b.h=cur.h;mark(b,2);cur=null;showGhostUI();sfx('build');upd();save();toast('Переезд завершён');return}
- const miss=Object.keys(d.c).filter(k=>S.res[k]<d.c[k]);if(miss.length){toast('Не хватает ресурсов: '+miss.map(k=>RN[k]).join(', '),true);return}for(const k in d.c)S.res[k]-=d.c[k];const b=addB(cur.t,cur.x,cur.y,cur.r,tNow),p=P(b.x+b.w/2,b.y+b.h/2);for(let i=0;i<10;i++)parts.push({x:p[0]+(Math.random()-.5)*30,y:p[1]+(Math.random()-.5)*16,a:0,dust:1});sfx('build');hap('success');upd();save();toast(d.n+' построен!');setCur(cur.cx,cur.cy)}
+function place(){if(!cur)return;if(cur.err){toast(cur.err,true);return}const d=B[cur.t];if(cur.moveB){const b=cur.moveB;b.x=cur.x;b.y=cur.y;b.r=cur.r;b.w=cur.w;b.h=cur.h;mark(b,2);cur=null;showGhostUI();sfx('build');refreshRoadBonus();upd();save();toast('Переезд завершён');return}
+ const miss=Object.keys(d.c).filter(k=>S.res[k]<d.c[k]);if(miss.length){toast('Не хватает ресурсов: '+miss.map(k=>RN[k]).join(', '),true);return}for(const k in d.c)S.res[k]-=d.c[k];const b=addB(cur.t,cur.x,cur.y,cur.r,tNow);{const st=S.stats||(S.stats={hw:0,hs:0,built:0,roads:0,up:0});st.built++;if(cur.t==='road')st.roads++}refreshRoadBonus();const p=P(b.x+b.w/2,b.y+b.h/2);for(let i=0;i<10;i++)parts.push({x:p[0]+(Math.random()-.5)*30,y:p[1]+(Math.random()-.5)*16,a:0,dust:1});sfx('build');hap('success');upd();save();toast(d.n+' построен!');setCur(cur.cx,cur.cy)}
 $('cx').onclick=()=>{sfx('click');cancel(true)};$('rot').onclick=rotate;$('confirmPlace').onclick=()=>{ensureAudio();place()};
 addEventListener('keydown',e=>{if(e.key==='Escape'){cur?cancel(true):closeP();if(bulldoze){bulldoze=false;areaStart=areaEnd=null}}else if(['r','R','к','К'].includes(e.key))rotate()});
 
@@ -574,16 +613,23 @@ function zoomAt(sx,sy,nz){if(cur||bulldoze)return;nz=cl(nz,.35,2.2);const bx=(sx
 function clampCam(){cam.x=cl(cam.x,-N*16,N*16);cam.y=cl(cam.y,0,N*32)}
 function mapPoint(sx,sy){return{wx:(sx-W/2)/cam.z+cam.x,wy:(sy-H/2)/cam.z+cam.y}}
 function findNature(sx,sy){const {wx,wy}=mapPoint(sx,sy);let best=null,bd=Infinity;for(const e of env){if(!['tree','pine','rock','bush'].includes(e.k)||e.cool>0)continue;const p=P(e.x,e.y),off=e.k==='rock'?8:e.k==='bush'?9:30,dist=Math.hypot(wx-p[0],wy-(p[1]-off));if(dist<38&&dist<bd){best=e;bd=dist}}return best}
-function harvest(e){if(!e||e.cool>0)return;const j=Math.floor(e.y),i=Math.floor(e.x),gain=e.k==='rock'?{stone:2}:e.k==='bush'?{food:1}:{wood:2};for(const k in gain)S.res[k]+=gain[k];e.cool=28;if(e.k!=='bush'&&occ[j]&&occ[j][i]===1)occ[j][i]=0;S.dailyTaps=Math.min(5,(S.dailyTaps||0)+1);sfx(e.k==='bush'?'collect':'coins');hap('success');upd();save();toast('Собрано: '+prodT(gain));}
+function harvest(e){if(!e||e.cool>0)return;const j=Math.floor(e.y),i=Math.floor(e.x),gain=e.k==='rock'?{stone:2}:e.k==='bush'?{food:1}:{wood:2};for(const k in gain)S.res[k]+=gain[k];{const st=S.stats||(S.stats={hw:0,hs:0,built:0,roads:0,up:0});st.hw+=gain.wood||0;st.hs+=gain.stone||0}e.cool=28;if(e.k!=='bush'&&occ[j]&&occ[j][i]===1)occ[j][i]=0;S.dailyTaps=Math.min(5,(S.dailyTaps||0)+1);sfx(e.k==='bush'?'collect':'coins');hap('success');upd();save();toast('Собрано: '+prodT(gain));}
 function regionBuildings(){if(!areaStart||!areaEnd)return[];const x1=Math.min(areaStart[0],areaEnd[0]),x2=Math.max(areaStart[0],areaEnd[0]),y1=Math.min(areaStart[1],areaEnd[1]),y2=Math.max(areaStart[1],areaEnd[1]);return S.b.filter(b=>b.x<=x2&&b.x+b.w-1>=x1&&b.y<=y2&&b.y+b.h-1>=y1)}
 function regionRefund(list){const out={};for(const b of list){const c=totalCost(b);for(const k in c)out[k]=(out[k]||0)+Math.floor(c[k]/2)}return out}
-function confirmRegion(){areaTargets=regionBuildings();const r=regionRefund(areaTargets),count=areaTargets.length;openP('area','Снос участка',`<p>В выделенной области: <b>${count} зданий</b>.</p><p>Вернётся половина стоимости: <b>${prodT(r)||'нет возврата'}</b></p><p class="muted">Подтверждение для сноса участка обязательно.</p><div class="actions"><button class="btn" id="areaYes">Снести ${count} зданий</button><button class="btn" id="areaNo">Отмена</button></div>`);$('areaYes').onclick=()=>{if(!areaTargets.length){bulldoze=false;areaStart=areaEnd=null;closeP();return}for(const b of [...areaTargets])removeB(b,true);bulldoze=false;areaStart=areaEnd=null;areaTargets=[];closeP();sfx('demolish');upd();save();toast('Участок очищен')};$('areaNo').onclick=()=>{areaStart=areaEnd=null;areaTargets=[];bulldoze=false;closeP()}}
+/* ===== этап Д: бульдозер сносит и природу (водопад защищён) ===== */
+const NATURE_K=['tree','pine','rock','bush'];
+let areaNature=[];
+function regionRect(){if(!areaStart||!areaEnd)return null;return[Math.min(areaStart[0],areaEnd[0]),Math.max(areaStart[0],areaEnd[0]),Math.min(areaStart[1],areaEnd[1]),Math.max(areaStart[1],areaEnd[1])]}
+function regionNature(){const rc=regionRect();if(!rc)return[];const[x1,x2,y1,y2]=rc;return env.filter(e=>{if(!NATURE_K.includes(e.k))return false;const i=Math.floor(e.x),j=Math.floor(e.y);if(i<x1||i>x2||j<y1||j>y2)return false;return !(occ[j]&&occ[j][i]===2)})}
+function natureGain(list){const out={};for(const e of list){if(e.cool>0)continue;const g=e.k==='rock'?{stone:2}:e.k==='bush'?{food:1}:{wood:2};for(const k in g)out[k]=(out[k]||0)+g[k]}return out}
+function removeNature(e){const j=Math.floor(e.y),i=Math.floor(e.x);if(e.k!=='bush'&&occ[j]&&occ[j][i]===1)occ[j][i]=0;const ix=env.indexOf(e);if(ix>=0)env.splice(ix,1);const p=P(e.x,e.y);for(let n=0;n<6;n++)parts.push({x:p[0]+(Math.random()-.5)*24,y:p[1]-4-Math.random()*8,a:0,dust:1})}
+function confirmRegion(){areaTargets=regionBuildings();areaNature=regionNature();const r=regionRefund(areaTargets),g2=natureGain(areaNature),count=areaTargets.length,nc=areaNature.length;const nBy={};for(const e of areaNature)nBy[e.k]=(nBy[e.k]||0)+1;const nTxt=nc?Object.keys(nBy).map(k=>({tree:'деревьев',pine:'сосен',rock:'камней',bush:'кустов'}[k])+' ×'+nBy[k]).join(', '):'';openP('area','Снос участка',`<p>В выделенной области: <b>${count} зданий</b>${nc?` и <b>${nc} объектов природы</b> (${nTxt})`:''}.</p><p>Вернётся половина стоимости зданий: <b>${prodT(r)||'нет возврата'}</b></p>${nc?`<p>Добыча с природы: <b>${prodT(g2)||'ничего — уже собрано тапами'}</b></p>`:''}<p class="muted">Подтверждение для сноса участка обязательно. Водопад сносу не подлежит.</p><div class="actions"><button class="btn" id="areaYes">Снести всё (${count+nc})</button><button class="btn" id="areaNo">Отмена</button></div>`);$('areaYes').onclick=()=>{if(!areaTargets.length&&!areaNature.length){bulldoze=false;areaStart=areaEnd=null;closeP();return}for(const b of [...areaTargets])removeB(b,true);const gain=natureGain(areaNature);for(const e of [...areaNature])removeNature(e);for(const k in gain)S.res[k]=(S.res[k]||0)+gain[k];bulldoze=false;areaStart=areaEnd=null;areaTargets=[];areaNature=[];closeP();sfx('demolish');upd();save();toast('Участок очищен')};$('areaNo').onclick=()=>{areaStart=areaEnd=null;areaTargets=[];areaNature=[];bulldoze=false;closeP()}}
 cv.onpointerdown=e=>{ensureAudio();if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,t:e.pointerType});drag=0;lastPointer={x:e.clientX,y:e.clientY};if(cur){const c=cell(e.clientX,e.clientY);setCur(c[0],c[1]);return}if(bulldoze){areaStart=cell(e.clientX,e.clientY);areaEnd=areaStart;areaDrag=true;drag=1;return}if(ptr.size===2){drag=1;const[a,b]=[...ptr.values()];pin0=Math.hypot(a.x-b.x)/cam.z}};
 cv.onpointermove=e=>{const p=ptr.get(e.pointerId);if(!p){if(cur&&e.pointerType==='mouse'){const c=cell(e.clientX,e.clientY);setCur(c[0],c[1])}return}const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;lastPointer={x:e.clientX,y:e.clientY};if(cur){if(Math.hypot(p.x-p.sx,p.y-p.sy)>3)drag=1;const c=cell(e.clientX,e.clientY);setCur(c[0],c[1]);return}if(bulldoze&&areaDrag){if(Math.hypot(p.x-p.sx,p.y-p.sy)>3)drag=1;areaEnd=cell(e.clientX,e.clientY);return}if(ptr.size===2){const[a,b]=[...ptr.values()];if(pin0>0)zoomAt((a.x+b.x)/2,(a.y+b.y)/2,Math.hypot(a.x-b.x,a.y-b.y)/pin0);return}if(Math.hypot(p.x-p.sx,p.y-p.sy)>6)drag=1;if(drag){cam.x-=dx/cam.z;cam.y-=dy/cam.z;clampCam();drawMini()}};
 cv.onpointerup=e=>{const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(cur){if(p){const c=cell(e.clientX,e.clientY);setCur(c[0],c[1])}return}if(bulldoze&&areaDrag){areaEnd=cell(e.clientX,e.clientY);areaDrag=false;if(p){confirmRegion()}return}if(p&&!drag&&!ptr.size)tap(e,p)};
 cv.onpointercancel=e=>{ptr.delete(e.pointerId);if(bulldoze)areaDrag=false};cv.onwheel=e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,cam.z*Math.exp(-e.deltaY*.0015))};cv.oncontextmenu=e=>{e.preventDefault();if(cur)cancel(true)};
 function tap(e,p){const c=cell(e.clientX,e.clientY);if(cur){setCur(c[0],c[1]);return}let f=null;for(let k=0;k<Math.min(4,S.b.length)&&!f;k++)f=S.b.find(b=>c[0]>=b.x&&c[0]<b.x+b.w&&c[1]>=b.y&&c[1]<b.y+b.h);if(f){sel=f;showSel(f);return}const node=findNature(e.clientX,e.clientY);if(node){harvest(node);return}closeP()}
-$('home').onclick=()=>{ensureAudio();sfx('click');cam.x=0;cam.y=416;cam.z=cl(W/1000,.72,1.4);clampCam();drawMini();toast('Камера в центре острова')};$('harvest').onclick=()=>{ensureAudio();sfx('click');toast('Нажмите на дерево, скалу или куст: получите ресурсы')};
+$('home').onclick=()=>{ensureAudio();sfx('click');cam.x=0;cam.y=N*16;cam.z=cl(W/1000,.72,1.4);clampCam();drawMini();toast('Камера в центре острова')};$('harvest').onclick=()=>{ensureAudio();sfx('click');toast('Нажмите на дерево, скалу или куст: получите ресурсы')};
 $('musicBtn').onclick=()=>{ensureAudio();settings.musicOn=!settings.musicOn;syncAudio();saveSettings();$('musicBtn').style.opacity=settings.musicOn?'1':'.45';toast(settings.musicOn?'Музыка включена':'Музыка выключена')};$('soundBtn').onclick=()=>{ensureAudio();settings.soundsOn=!settings.soundsOn;syncAudio();saveSettings();$('soundBtn').style.opacity=settings.soundsOn?'1':'.45';toast(settings.soundsOn?'Звуки включены':'Звуки выключены')};
 
 /* Миникарта: кодом рисует берег, здания и рамку текущего обзора. */
@@ -641,6 +687,7 @@ function drawRoadTile(c,x,y,mask,isPath){
    паттерны — зеркало ничего не даёт), tower (фасад симметричен по построению). */
 const MIRROR=new Set(['house','cottage','apartment','hotel','townhall','police','fire','hospital','school','post','cafe','shop','bakery','workshop','warehouse','church','sawmill','well','beehive','garden','park','windmill']);
 function drawStructure(c,x,y,w,h,t,time=0,seed=0,lv=1,r=0){const mir=r===1&&w===h&&MIRROR.has(t);if(mir){const cx=P(x+w/2,y+h/2)[0];c.save();c.translate(cx,0);c.scale(-1,1);c.translate(-cx,0)}
+ if(t!=='road'&&t!=='path'){const cp=P(x+w/2,y+h/2),swd=(w+h)*17.5,shh=(w+h)*8.75,phs=Math.sin((time||0)*.012-1),nf=(phs+1)/2;c.save();c.globalAlpha*=0.95-nf*.45;c.drawImage(shadowSpr(),cp[0]-swd+phs*4,cp[1]-shh+2,swd*2,shh*2);c.restore()}
  if(DR[t]){DR[t](c,x,y,w,h,settings.animations?time:0,seed);if(lv>1){const p=P(x+w/2,y+h/2,45+lv*3);circ(c,p[0],p[1],2.5+lv,'#ffdf70','#9b712c')}}else drawGeneric(c,x,y,w,h,t,settings.animations?time:0,lv);
  if(mir)c.restore()}
 function tileBase(c,x,y,w,h,col){poly(c,[P(x,y),P(x+w,y),P(x+w,y+h),P(x,y+h)],col,'rgba(64,67,40,.25)')}
@@ -682,26 +729,34 @@ function diamond(c,x,y,w,h,f,s){poly(c,[P(x,y),P(x+w,y),P(x+w,y+h),P(x,y+h)],f,s
 
 /* ===== апдейт, производство, деревья, миниатюрные частицы ===== */
 let smk=0,miniElapsed=0;
-function update(dt){if(!settings.animations)dt=Math.min(dt,.05);for(const b of S.b)for(const k in B[b.t].p){const factor=workerFactor()*(.55+happiness()/220);S.acc[k]=(S.acc[k]||0)+B[b.t].p[k]*(1+(b.lv-1)*.45)*factor*dt}
+function update(dt){if(!settings.animations)dt=Math.min(dt,.05);gTime+=dt;wxTick();rbT-=dt;if(rbT<=0){rbT=1;refreshRoadBonus()}orderT-=dt;if(orderT<=0){orderT=.5;orderChk()}const gfactor=workerFactor()*(.55+happiness()/220),rainW=S.wx&&S.wx.k==='rain';for(const b of S.b){const rb=b.road?1.1:1;for(const k in B[b.t].p){S.acc[k]=(S.acc[k]||0)+B[b.t].p[k]*(1+(b.lv-1)*.45)*rb*gfactor*((k==='water'&&rainW)?1.5:1)*dt}}if(settings.animations)updateCars(dt);
  let changed=false;for(const k in S.acc)if(S.acc[k]>=1){const n=Math.floor(S.acc[k]);S.acc[k]-=n;S.res[k]=(S.res[k]||0)+n;changed=true}if(changed)upd();
  for(const e of env){const solid=e.k==='tree'||e.k==='pine'||e.k==='rock',j=Math.floor(e.y),i=Math.floor(e.x);if(e.cool>0){e.cool=Math.max(0,e.cool-dt);if(e.cool===0&&solid&&occ[j]&&occ[j][i]===0&&land[j][i]===1)occ[j][i]=1}else if(solid&&occ[j]&&occ[j][i]===0&&land[j][i]===1)occ[j][i]=1}
  smk-=dt;if(smk<0){smk=.8;const hs=S.b.filter(b=>['house','cottage','apartment','tower','cafe','bakery'].includes(b.t));if(hs.length){const b=hs[Math.random()*hs.length|0],p=P(b.x+.3,b.y+.6,42+(b.lv-1)*5);parts.push({x:p[0],y:p[1],a:0})}}
  for(let i=parts.length-1;i>=0;i--){const q=parts[i];q.a+=dt;if(q.dust){q.y-=4*dt}else{q.y-=12*dt;q.x+=4*dt}if(q.a>(q.dust?.7:3))parts.splice(i,1)}
  if(settings.animations){for(const n of npcs){if(!free(Math.floor(n.x),Math.floor(n.y))){const f=freeCells();if(f.length){const q=f[Math.random()*f.length|0];n.x=n.tx=q[0]+.5;n.y=n.ty=q[1]+.5}continue}const dx=n.tx-n.x,dy=n.ty-n.y,d=Math.hypot(dx,dy);if(d<.05){n.w-=dt;if(n.w>0)continue;const fi=Math.floor(n.x),fj=Math.floor(n.y);for(let k=0;k<8;k++){const dr=k===0&&Math.random()<.6?n.d:[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]][Math.random()*8|0],i=fi+dr[0],j=fj+dr[1];if(free(i,j)&&(!dr[0]||!dr[1]||free(i,fj)&&free(fi,j))){n.tx=i+.5+(Math.random()-.5)*.3;n.ty=j+.5+(Math.random()-.5)*.3;n.d=dr;n.w=Math.random()*.8;break}}}else{const s=Math.min(1,n.sp*dt/d);n.x+=dx*s;n.y+=dy*s}}}
  miniElapsed+=dt;if(miniElapsed>.2){miniElapsed=0;drawMini()}if(settings.water){} }
-function render(t){const z=cam.z*DPR;g.setTransform(1,0,0,1,0,0);g.fillStyle='#19b8cf';g.fillRect(0,0,cv.width,cv.height);g.setTransform(z,0,0,z,cv.width/2-cam.x*z,cv.height/2-cam.y*z);g.drawImage(seaL,TX0,TY0,WW,HH);
- if(settings.water){g.strokeStyle='#fff';g.lineWidth=2;g.lineCap='round';for(const w of rip){g.globalAlpha=.12+.18*Math.sin(t*.8+w.ph);g.beginPath();g.ellipse(w.x+Math.sin(t*.25+w.ph)*6,w.y,w.r,w.r*.34,0,PI*1.05,PI*1.9);g.stroke()}g.globalAlpha=1}
- g.drawImage(landL,TX0,TY0,WW,HH);if(settings.water){for(const s of segs){const k=.5+.5*Math.sin(t*.9+s[6]),o=.1+.22*k,a=P(s[0]+s[4]*o,s[1]+s[5]*o),b=P(s[2]+s[4]*o,s[3]+s[5]*o);g.globalAlpha=.4-.3*k;g.strokeStyle='#e7ffff';g.lineWidth=2.5;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}g.globalAlpha=1}
- if(cur&&settings.grid){for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(land[y][x]===1)diamond(g,x,y,1,1,'rgba(255,255,255,.025)','rgba(255,255,255,.19)')}
+function render(t){const z=cam.z*DPR;g.setTransform(1,0,0,1,0,0);g.fillStyle='#19b8cf';g.fillRect(0,0,cv.width,cv.height);g.setTransform(z,0,0,z,cv.width/2-cam.x*z,cv.height/2-cam.y*z);/* видимая область мира (мировые px) и диапазон клеток: тайлы моря, чанки суши, отбраковка */
+const _pa=mapPoint(0,0),_pb=mapPoint(W,H),vx0=Math.min(_pa.wx,_pb.wx),vy0=Math.min(_pa.wy,_pb.wy),vx1=Math.max(_pa.wx,_pb.wx),vy1=Math.max(_pa.wy,_pb.wy);
+const _cc=[[vx0,vy0],[vx1,vy0],[vx0,vy1],[vx1,vy1]].map(p=>[(p[0]/32+p[1]/16)/2,(p[1]/16-p[0]/32)/2]);
+const cx0=Math.max(0,Math.floor(Math.min(..._cc.map(p=>p[0])))-5),cx1=Math.min(N-1,Math.ceil(Math.max(..._cc.map(p=>p[0])))+5),cy0=Math.max(0,Math.floor(Math.min(..._cc.map(p=>p[1])))-5),cy1=Math.min(N-1,Math.ceil(Math.max(..._cc.map(p=>p[1])))+5);
+for(let ty=Math.floor(vy0/SEAT)*SEAT;ty<vy1;ty+=SEAT)for(let tx=Math.floor(vx0/SEAT)*SEAT;tx<vx1;tx+=SEAT)g.drawImage(seaL,tx,ty,SEAT,SEAT);
+ if(settings.water){g.strokeStyle='#fff';g.lineWidth=2;g.lineCap='round';for(const w of rip){g.globalAlpha=.10+.2*Math.sin(t*.9+w.ph+w.x*.008);g.beginPath();g.ellipse(w.x+Math.sin(t*.25+w.ph)*(w.shore?2.5:6),w.y,w.r,w.r*.34,0,PI*1.05,PI*1.9);g.stroke()}g.globalAlpha=1}
+ chunkDraws=0;for(const ch of landChunks){if(ch.x>=vx1||ch.y>=vy1||ch.x+1536<=vx0||ch.y+768<=vy0)continue;g.drawImage(ch.cv,CHM*CHS,CHM*CHS,1536*CHS,768*CHS,ch.x,ch.y,1536,768);chunkDraws++}if(settings.water){for(const s of segs){if(s[0]<cx0-2||s[0]>cx1+2||s[1]<cy0-2||s[1]>cy1+2)continue;const k=.5+.5*Math.sin(t*.9+s[6]),o=.1+.22*k,a=P(s[0]+s[4]*o,s[1]+s[5]*o),b=P(s[2]+s[4]*o,s[3]+s[5]*o);g.globalAlpha=.4-.3*k;g.strokeStyle='#e7ffff';g.lineWidth=2.5;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}g.globalAlpha=1}
+ if(cur&&settings.grid){for(let y=cy0;y<=cy1;y++)for(let x=cx0;x<=cx1;x++)if(land[y][x]===1)diamond(g,x,y,1,1,'rgba(255,255,255,.025)','rgba(255,255,255,.19)')}
  if(sel&&S.b.includes(sel))diamond(g,sel.x,sel.y,sel.w,sel.h,`rgba(255,255,255,${.17+.1*Math.sin(t*4)})`,'#fff');
  if(cur){const fp=fpT(cur.t,cur.r);diamond(g,cur.x,cur.y,fp[0],fp[1],cur.err?'rgba(220,60,50,.48)':'rgba(70,200,80,.43)',cur.err?'#c0392b':'#2e9b3a')}
- if(bulldoze&&areaStart&&areaEnd){const x=Math.min(areaStart[0],areaEnd[0]),y=Math.min(areaStart[1],areaEnd[1]),w=Math.abs(areaEnd[0]-areaStart[0])+1,h=Math.abs(areaEnd[1]-areaStart[1])+1;diamond(g,x,y,w,h,'rgba(232,57,43,.20)','#e64937');for(const b of regionBuildings())diamond(g,b.x,b.y,b.w,b.h,'rgba(255,40,40,.3)','#c72b25')}
+ if(bulldoze&&areaStart&&areaEnd){const x=Math.min(areaStart[0],areaEnd[0]),y=Math.min(areaStart[1],areaEnd[1]),w=Math.abs(areaEnd[0]-areaStart[0])+1,h=Math.abs(areaEnd[1]-areaStart[1])+1;diamond(g,x,y,w,h,'rgba(232,57,43,.20)','#e64937');for(const b of regionBuildings())diamond(g,b.x,b.y,b.w,b.h,'rgba(255,40,40,.3)','#c72b25');for(const e of regionNature())diamond(g,Math.floor(e.x),Math.floor(e.y),1,1,'rgba(255,120,40,.35)','#c75b25')}
  buildRoadSets();
- const lst=[];for(const e of env)lst.push([e.x+e.y,0,e]);for(const b of S.b)if(!(cur&&cur.moveB===b))lst.push([b.x+b.y+b.w+b.h-1,1,b]);for(const n of npcs)lst.push([n.x+n.y+.1,2,n]);lst.sort((a,b)=>a[0]-b[0]);
- for(const[,k,o]of lst){if(k===0){const ej=Math.floor(o.y),ei=Math.floor(o.x);if((occ[ej]&&occ[ej][ei]===2)||(o.cool>0&&o.k!=='waterfall'))continue;DE[o.k]?.(g,o,settings.animations?t:0)}else if(k===2)npc(g,o,settings.animations?t:0);else{const a=o.t0<0?1:Math.min(1,(t-o.t0)/.45);g.save();if(a<1){const p=P(o.x+o.w/2,o.y+o.h/2),e=1-Math.pow(1-a,3);g.translate(p[0],p[1]);g.scale(1,.6+.4*e+Math.sin(a*PI)*.1);g.translate(-p[0],-p[1])}drawStructure(g,o.x,o.y,o.w,o.h,o.t,t,o.s,o.lv,o.r);g.restore()}}
+ const lst=[];for(const e of env){if(e.x<cx0||e.x>cx1||e.y<cy0||e.y>cy1)continue;lst.push([e.x+e.y,0,e])}for(const b of S.b){if(b.x+b.w<cx0||b.x>cx1||b.y+b.h<cy0||b.y>cy1)continue;if(!(cur&&cur.moveB===b))lst.push([b.x+b.y+b.w+b.h-1,1,b])}for(const n of npcs)lst.push([n.x+n.y+.1,2,n]);for(const cr of cars){const fx=cr.cx+(cr.nx-cr.cx)*cr.p,fy=cr.cy+(cr.ny-cr.cy)*cr.p;lst.push([fx+fy+.2,3,cr])}lst.sort((a,b)=>a[0]-b[0]);
+ for(const[,k,o]of lst){if(k===0){const ej=Math.floor(o.y),ei=Math.floor(o.x);if((occ[ej]&&occ[ej][ei]===2)||(o.cool>0&&o.k!=='waterfall'))continue;DE[o.k]?.(g,o,settings.animations?t:0)}else if(k===2)npc(g,o,settings.animations?t:0);else if(k===3)drawCar(g,o,t);else{const a=o.t0<0?1:Math.min(1,(t-o.t0)/.45);g.save();if(a<1){const p=P(o.x+o.w/2,o.y+o.h/2),e=1-Math.pow(1-a,3);g.translate(p[0],p[1]);g.scale(1,.6+.4*e+Math.sin(a*PI)*.1);g.translate(-p[0],-p[1])}drawStructure(g,o.x,o.y,o.w,o.h,o.t,t,o.s,o.lv,o.r);g.restore()}}
  if(cur){const fp=fpT(cur.t,cur.r);g.save();g.globalAlpha=.62;drawStructure(g,cur.x,cur.y,fp[0],fp[1],cur.t,t,0,cur.moveB?cur.moveB.lv:1,cur.r);g.restore()}
  for(const q of parts){const k=q.a/(q.dust?.7:3);g.globalAlpha=(1-k)*(q.dust?.55:.5);circ(g,q.x,q.y,q.dust?3+k*7:3+q.a*4,q.dust?'#d9c08a':'#fff','rgba(0,0,0,0)')}g.globalAlpha=1;
  const night=(Math.sin(t*.012-1)+1)/2;if(night>.83){g.setTransform(1,0,0,1,0,0);g.fillStyle=`rgba(14,38,78,${(night-.83)*.32})`;g.fillRect(0,0,cv.width,cv.height);g.setTransform(z,0,0,z,cv.width/2-cam.x*z,cv.height/2-cam.y*z)}
+ /* этап Д: бликовая дорожка солнца (днём) / луны (ночью) по воде, экранные координаты */
+ {g.setTransform(1,0,0,1,0,0);const dayA=Math.max(0,.65-night)/.65,moonA=Math.max(0,night-.83)/.17;if(dayA>0||moonA>0){const gx=cv.width*(.5+.28*Math.sin(t*.012-1));g.fillStyle=dayA>0?'#fffbe8':'#cfe4ff';for(let i=0;i<26;i++){const h1=Math.sin(i*127.1)*43758.5,h2=Math.sin(i*311.7)*12543.8,f1=h1-Math.floor(h1),f2=h2-Math.floor(h2),py=((f2+t*.008*(1+i%3))%1)*cv.height,px=gx+(f1-.5)*(90+220*Math.abs(Math.sin(py*.004+i))),wd=3+f1*9*(0.5+dayA*.5);g.globalAlpha=(dayA*.13+moonA*.08)*(.4+.6*f2);g.fillRect(px,py,wd,1.6)}g.globalAlpha=1}}
+ /* этап Д: тёплая цветокоррекция днём, холодная — ночью (1-2 fillRect на кадр) */
+ g.fillStyle=`rgba(255,178,102,${(.05*(1-night)).toFixed(3)})`;g.fillRect(0,0,cv.width,cv.height);if(night>.6){g.fillStyle=`rgba(84,120,210,${(.045*(night-.6)/.4).toFixed(3)})`;g.fillRect(0,0,cv.width,cv.height)}g.setTransform(z,0,0,z,cv.width/2-cam.x*z,cv.height/2-cam.y*z);drawWeather(t)
 }
 let last=0;function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;tNow=ts/1000;update(dt);render(settings.animations?tNow:0);if(tg){const s=!!(cur||pmode||bulldoze);if(s!==tgB){tgB=s;try{s?tg.BackButton.show():tg.BackButton.hide()}catch(e){}}}requestAnimationFrame(loop)}
 function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(2,devicePixelRatio||1);cv.width=Math.floor(W*DPR);cv.height=Math.floor(H*DPR);if(cam)clampCam();drawMini()}
@@ -709,6 +764,62 @@ addEventListener('resize',resize);addEventListener('pagehide',()=>save());docume
 function hap(t){if(!settings.vibration)return;try{if(tg&&tg.HapticFeedback)tg.HapticFeedback.notificationOccurred(t);else if(navigator.vibrate)navigator.vibrate(t==='error'?45:18)}catch(e){}}
 const tg=(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.platform!=='unknown')?Telegram.WebApp:null;let tgB=false;
 if(tg){try{tg.ready();tg.expand();if(tg.isVersionAtLeast('7.7'))tg.disableVerticalSwipes();if(tg.isVersionAtLeast('6.1')){tg.setHeaderColor('#19b8cf');tg.setBackgroundColor('#19b8cf')}tg.BackButton.onClick(()=>{if(cur)cancel(true);else if(bulldoze){bulldoze=false;areaStart=areaEnd=null}else closeP()})}catch(e){}}
+/* ===== этап Е: дорожный бонус, ежедневный бонус, заказы мэрии, погода и облака, машинки ===== */
+let gTime=0,rbT=0,orderT=0,cars=[],carSet=new Set(),carSyncT=0,clouds=null;
+/* --- 1. Дорожный бонус: производящее здание, граничащее с дорогой/мостиком, получает +10% --- */
+function refreshRoadBonus(){if(!S||!Array.isArray(S.b))return;const rs=new Set();for(const b of S.b){if(cur&&cur.moveB===b)continue;if(b.t==='road'||b.t==='bridge')for(let j=b.y;j<b.y+b.h;j++)for(let i=b.x;i<b.x+b.w;i++)rs.add(i+','+j)}
+ for(const b of S.b){b.road=false;if(!B[b.t]||!Object.keys(B[b.t].p).length)continue;let f=false;for(let j=b.y;j<b.y+b.h&&!f;j++)for(let i=b.x;i<b.x+b.w&&!f;i++)if(rs.has((i+1)+','+j)||rs.has((i-1)+','+j)||rs.has(i+','+(j+1))||rs.has(i+','+(j-1)))f=true;b.road=f}}
+/* --- 2. Ежедневный бонус: серия входов по дням, 100 монет x день серии (кап x7) --- */
+function dateKeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function applyDailyBonus(){if(!S.bonus||typeof S.bonus!=='object')S.bonus={last:'',streak:0};const tk=todayKey();if(S.bonus.last===tk)return;const y=new Date();y.setDate(y.getDate()-1);S.bonus.streak=S.bonus.last===dateKeyOf(y)?Math.max(0,Math.floor(S.bonus.streak||0))+1:1;S.bonus.last=tk;const amt=100*Math.min(7,S.bonus.streak);S.res.coins=(S.res.coins||0)+amt;toast(`🎁 Ежедневный бонус: день ${S.bonus.streak} серии — +${amt} монет`);save()}
+/* --- 3. Заказы мэрии: вращающиеся мини-задания, прогресс от базы на момент выдачи --- */
+const ORDER_TYPES=['house','farm','market','cafe','park','sawmill','school','garden'];
+const ORDERS=[
+ {mk:n=>{const t=ORDER_TYPES[n%ORDER_TYPES.length];return{label:'Построить: '+B[t].n,goal:1,reward:{coins:120},cur:()=>cnt(t)}}},
+ {mk:n=>({label:'Накопить монет (+600 к запасу)',goal:600,reward:{wood:40,stone:20},cur:()=>S.res.coins})},
+ {mk:n=>({label:'Добыть тапами 15 дерева',goal:15,reward:{coins:90},cur:()=>S.stats.hw})},
+ {mk:n=>({label:'Добыть тапами 10 камня',goal:10,reward:{coins:90},cur:()=>S.stats.hs})},
+ {mk:n=>({label:'Построить 5 дорог',goal:5,reward:{coins:110},cur:()=>S.stats.roads})},
+ {mk:n=>({label:'Улучшить любое здание',goal:1,reward:{coins:130},cur:()=>S.stats.up})},
+ {mk:n=>({label:'Построить 3 здания',goal:3,reward:{coins:100,food:15},cur:()=>S.stats.built})}
+];
+function orderDef(){if(!S||!S.order)return null;const ti=((S.order.ti%ORDERS.length)+ORDERS.length)%ORDERS.length;return ORDERS[ti].mk(S.order.count||0)}
+function ensureOrder(){if(!S)return;if(S.order&&Number.isFinite(S.order.ti)&&Number.isFinite(S.order.base))return;const count=S.order&&Number.isFinite(S.order.count)?Math.max(0,Math.floor(S.order.count)):0;S.order={ti:count%ORDERS.length,base:0,count};S.order.base=orderDef().cur()}
+function issueNextOrder(){const prev=S.order||{ti:0,count:0},count=(prev.count||0)+1,ti=((prev.ti||0)+3)%ORDERS.length;S.order={ti,base:0,count};S.order.base=orderDef().cur()}
+function orderChk(){if(!S||!S.stats)return;ensureOrder();const def=orderDef();if(!def)return;if(def.cur()-S.order.base>=def.goal){for(const k in def.reward)S.res[k]=(S.res[k]||0)+def.reward[k];sfx('success');toast('🏛 Заказ мэрии выполнен! Награда: '+prodT(def.reward));issueNextOrder();save()}}
+function orderHtml(){if(!S||!S.stats)return'';ensureOrder();const def=orderDef();if(!def)return'';const prog=Math.max(0,Math.min(def.goal,def.cur()-S.order.base));return `<div class="sectionTitle">🏛 Заказ мэрии</div><div class="row"><span>${def.label}</span><span>${prog}/${def.goal}</span></div><p>Награда: ${prodT(def.reward)} · Выполнено заказов: ${S.order.count||0}</p>`}
+/* --- 4. Погода и облака: sun/cloud/rain по 60-120 с; дождь даёт воде x1.5 (в production/update) --- */
+function wxIco(){return !S||!S.wx?'☀️':S.wx.k==='rain'?'🌧':S.wx.k==='cloud'?'☁️':'☀️'}
+function wxName(){return !S||!S.wx?'☀️ Солнечно':S.wx.k==='rain'?'🌧 Дождь · вода ×1.5':S.wx.k==='cloud'?'☁️ Облачно':'☀️ Солнечно'}
+function wxTick(){if(!S||!S.wx)return;if(gTime>=S.wx.until){const r=Math.random();S.wx.k=r<.5?'sun':r<.8?'cloud':'rain';S.wx.until=gTime+60+Math.random()*60;upd()}}
+function drawWeather(t){if(!S||!S.wx)return;const k=S.wx.k;g.setTransform(1,0,0,1,0,0);
+ if(!clouds){clouds=[];for(let i=0;i<7;i++)clouds.push({fx:Math.random(),fy:.04+Math.random()*.22,s:.7+Math.random()*.8,v:8+Math.random()*10})}
+ if(k==='cloud'){g.fillStyle='rgba(100,112,124,.10)';g.fillRect(0,0,cv.width,cv.height)}
+ if(k==='rain'){g.fillStyle='rgba(35,55,85,.13)';g.fillRect(0,0,cv.width,cv.height)}
+ const n=k==='sun'?4:7,baseA=k==='sun'?.30:k==='cloud'?.55:.78,col=k==='sun'?'255,255,255':k==='cloud'?'238,242,245':'203,211,221';
+ for(let i=0;i<n;i++){const cl2=clouds[i];if(!cl2)continue;const cx=(((cl2.fx+t*cl2.v/Math.max(1,cv.width))%1.25)-.12)*cv.width,cy=cl2.fy*cv.height,s=cl2.s;
+  ell(g,cx+46,cy+cv.height*.42,52*s,13*s,'rgba(50,60,50,.07)');
+  ell(g,cx,cy,44*s,13*s,`rgba(${col},${baseA})`);ell(g,cx-24*s,cy+3*s,28*s,9*s,`rgba(${col},${baseA})`);ell(g,cx+25*s,cy+3*s,30*s,10*s,`rgba(${col},${baseA})`);ell(g,cx+2*s,cy-7*s,26*s,10*s,`rgba(${col},${baseA})`)}
+ if(k==='rain'){g.strokeStyle='rgba(195,228,255,.38)';g.lineWidth=1.4;g.beginPath();for(let i=0;i<70;i++){const rx=(i*131.7+t*360)%cv.width,ry=(i*89.3+t*560)%cv.height;g.moveTo(rx,ry);g.lineTo(rx-5,ry+13)}g.stroke()}}
+/* --- 5. Машинки: ездят только по клеткам дорог и мостов (граф из S.b), не сохраняются --- */
+const CARCOLS=['#e74c3c','#f39c12','#3498db','#e67e22','#9b59b6','#1abc9c'];
+function carCells(){const s=new Set();for(const b of S.b)if(b.t==='road'||b.t==='bridge')for(let j=b.y;j<b.y+b.h;j++)for(let i=b.x;i<b.x+b.w;i++)s.add(i+','+j);return s}
+function carNeigh(x,y){const out=[];for(const d of[[1,0],[-1,0],[0,1],[0,-1]])if(carSet.has((x+d[0])+','+(y+d[1])))out.push([x+d[0],y+d[1]]);return out}
+function syncCars(){carSet=carCells();const seen=new Set(),comps=[];for(const key of carSet){if(seen.has(key))continue;const comp=[],q=[key];seen.add(key);while(q.length){const k2=q.pop();comp.push(k2);const pr=k2.split(','),x=+pr[0],y=+pr[1];for(const d of[[1,0],[-1,0],[0,1],[0,-1]]){const nk=(x+d[0])+','+(y+d[1]);if(carSet.has(nk)&&!seen.has(nk)){seen.add(nk);q.push(nk)}}}comps.push(comp)}
+ const big=comps.filter(c=>c.length>=6),total=carSet.size;let want=total>=8?Math.min(6,Math.max(1,Math.floor(total/12))):0;if(!big.length)want=0;
+ cars=cars.filter(cr=>carSet.has(cr.cx+','+cr.cy)&&carSet.has(cr.nx+','+cr.ny));while(cars.length>want)cars.pop();
+ let guard=0;while(cars.length<want&&guard++<40){const comp=big[Math.floor(Math.random()*big.length)],cell=comp[Math.floor(Math.random()*comp.length)],pr=cell.split(','),x=+pr[0],y=+pr[1],nbs=carNeigh(x,y);if(!nbs.length)continue;const nb=nbs[Math.floor(Math.random()*nbs.length)];cars.push({cx:x,cy:y,px:x,py:y,nx:nb[0],ny:nb[1],p:Math.random()*.5,sp:1/1.2,col:CARCOLS[cars.length%CARCOLS.length]})}}
+function updateCars(dt){carSyncT-=dt;if(carSyncT<=0){carSyncT=.5;syncCars()}for(const cr of cars){cr.p+=dt*cr.sp;let hops=0;while(cr.p>=1&&hops++<4){cr.p-=1;cr.px=cr.cx;cr.py=cr.cy;cr.cx=cr.nx;cr.cy=cr.ny;const all=carNeigh(cr.cx,cr.cy),fwd=all.filter(q=>!(q[0]===cr.px&&q[1]===cr.py)),pool=fwd.length?fwd:all;if(!pool.length){cr.nx=cr.cx;cr.ny=cr.cy;cr.p=0;break}const nb=pool[Math.floor(Math.random()*pool.length)];cr.nx=nb[0];cr.ny=nb[1]}}}
+function drawCar(c,cr,t){const fx=cr.cx+(cr.nx-cr.cx)*cr.p+.5,fy=cr.cy+(cr.ny-cr.cy)*cr.p+.5,ctr=P(fx,fy);ell(c,ctr[0],ctr[1]+2,12,4.5,'rgba(30,40,20,.28)');
+ const cs=[[fx-.19,fy-.12],[fx+.19,fy-.12],[fx+.19,fy+.12],[fx-.19,fy+.12]].map(q=>P(q[0],q[1]));
+ poly(c,[[cs[3][0],cs[3][1]],[cs[2][0],cs[2][1]],[cs[2][0],cs[2][1]-5],[cs[3][0],cs[3][1]-5]],cr.col);
+ poly(c,[[cs[0][0],cs[0][1]],[cs[1][0],cs[1][1]],[cs[1][0],cs[1][1]-5],[cs[0][0],cs[0][1]-5]],cr.col);
+ poly(c,[[cs[0][0],cs[0][1]-5],[cs[1][0],cs[1][1]-5],[cs[2][0],cs[2][1]-5],[cs[3][0],cs[3][1]-5]],cr.col);
+ const cb=[[fx-.10,fy-.06],[fx+.08,fy-.06],[fx+.08,fy+.06],[fx-.10,fy+.06]].map(q=>P(q[0],q[1]));
+ poly(c,[[cb[0][0],cb[0][1]-5],[cb[1][0],cb[1][1]-5],[cb[2][0],cb[2][1]-5],[cb[3][0],cb[3][1]-5]],'#cfeaf4');
+ circ(c,cs[3][0]+3,cs[3][1]-1,2.1,'#26221f','rgba(0,0,0,0)');circ(c,cs[2][0]-3,cs[2][1]-1,2.1,'#26221f','rgba(0,0,0,0)');
+ c.strokeStyle='rgba(255,255,255,.65)';c.lineWidth=1.1;c.beginPath();c.moveTo(cs[0][0]+2,cs[0][1]-5);c.lineTo(cs[1][0]-2,cs[1][1]-5);c.stroke()}
+
 /* Start in the city centre; all visuals are canvas primitives. */
 resize();cam.z=cl(W/1000,.72,1.4);genWorld();buildLayers();load();upd();drawMini();$('musicBtn').style.opacity=settings.musicOn?'1':'.45';$('soundBtn').style.opacity=settings.soundsOn?'1':'.45';document.addEventListener('pointerdown',()=>{ensureAudio()},{once:true,passive:true});
 requestAnimationFrame(loop);
